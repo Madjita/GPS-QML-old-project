@@ -8,21 +8,22 @@
 #include <bdata.h>
 
 #include <osuilografmodel.h>
-#include <tp8.h>
+#include <tp8model.h>
 
 class gsgModel : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit gsgModel(QObject *parent = 0);
+    explicit gsgModel(QObject *parent = nullptr);
+    ~gsgModel();
 
      GSG* gsg;
 
      int R;
      int G;
 
-      Q_PROPERTY(QString name READ name);
+      Q_PROPERTY(QString name READ name)
 
       const QString & name() const;
 
@@ -35,9 +36,9 @@ public:
 
       OsuilografModel * os;
 
-      TP8* tp;
+      tp8Model* tp;
 
-      void Sed_TP_OS(OsuilografModel*,TP8*);
+      void Sed_TP_OS(OsuilografModel*,tp8Model*);
 
 
 signals:
@@ -60,6 +61,8 @@ signals:
     ///////////////////////
     void signal_Gen_setCONTrol(QString);
     void signal_Gen_setSATid(QString);
+
+    void signal_setPPSOUTput(int on);
 
 
 
@@ -85,6 +88,8 @@ public slots:
     void slot_Gen_setCONTrol(QString SIGNALtype);
 
     void slot_Gen_setSATid(QString SIGNALtype);
+
+    void slot_setPPSOUTput(int on);
 
 
 };

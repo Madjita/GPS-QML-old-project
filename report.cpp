@@ -3,11 +3,22 @@
 #include <QFileDialog>
 #include <QPrinter>
 
-#define TABLE                   "NameTable"         // Название таблицы
+#include <bdata.h>
 
-Report::Report(gsgModel* GetGSG,QObject *parent) :
+
+/*!
+    \brief Конструктор класса Реализации word pdf ПСИ отчета
+
+
+    В конструкторе инициализируются константные данные для генерации отчета. Таки екак литеры с -6 до +6 и GPS1 до GPS23
+
+    \author Sergey Smoglyuk
+    \version 1.0
+    \date Август 2018 года
+*/
+Report::Report(Algorithm* _alg,QObject *parent) :
     QObject(parent),
-    gsg(GetGSG)
+    alg(_alg)
 {
 
     start_proverka = "25.04.2017  09:33:58";
@@ -67,13 +78,35 @@ Report::Report(gsgModel* GetGSG,QObject *parent) :
     Select.append("");
     Select.append("");
 
+
 }
 
+/*!
+    \brief Функция выбора спутника
+
+
+    Функция возвращает "QStringList Select"
+
+    \author Sergey Smoglyuk
+    \version 1.0
+    \date Август 2018 года
+*/
 const QStringList &Report::listSelect() const
 {
     return Select;
 }
 
+/*!
+    \brief Функция выбора спутника
+
+
+    Функция возвращает "QStringList Select"
+
+    \author Sergey Smoglyuk
+    \version 1.0
+    \date Август 2018 года
+    \warning Данная функция не  используется в программе
+*/
 void Report::SetlistSelect(const QStringList &listSelect)
 {
     if(listSelect != Select)
@@ -84,12 +117,25 @@ void Report::SetlistSelect(const QStringList &listSelect)
     }
 }
 
+
+/*!
+    \brief Функция поиска информации в БД
+
+
+    Функция поиска информации в БД.\n
+    Генерация данных из БД для формирования отчета ПСИ.
+
+    \author Sergey Smoglyuk
+    \version 1.0
+    \date Август 2018 года
+    \warning Данная функция не  используется в программе
+*/
 void Report::slot_FindData()
 {
     //поиск id существующих Проверок в Бд
     QSqlQueryModel* SQL_id;
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT * FROM Proverki");
+    SQL_id = alg->BD->zaprosQueryModel("SELECT * FROM Proverki");
 
     list_id_Proverki_Find.clear();
     list_id_Proverki_Find_Name.clear();
@@ -110,7 +156,7 @@ void Report::slot_FindData()
 
 
     //Регулировка в НУ
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
                                        " FROM"
                                        " (SELECT DISTINCT Link_Result.Id AS LinkRezId,[FIO],[Serial],[Etap],[DateStart],[DateEnd]"
                                        " FROM Link_Result"
@@ -135,7 +181,7 @@ void Report::slot_FindData()
 
     list_id_Proverki_Find_Name_Sootvetstvie_Regylirovka_NY.clear();
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
                                        " FROM Result"
                                        " Join Link_Result ON Link_Result.Id = Result.IdLink "
                                        " WHere IdLink = '"+LinkRezId+"'");
@@ -176,7 +222,7 @@ void Report::slot_FindData()
     list_id_Proverki_Find_Name_Sootvetstvie_Regylirovka_NY.append(FIO);
 
     //Регулировка в Холоде
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
                                        " FROM"
                                        " (SELECT DISTINCT Link_Result.Id AS LinkRezId,[FIO],[Serial],[Etap],[DateStart],[DateEnd]"
                                        " FROM Link_Result"
@@ -196,7 +242,7 @@ void Report::slot_FindData()
 
     list_id_Proverki_Find_Name_Sootvetstvie_Regylirovka_ColD.clear();
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
                                        " FROM Result"
                                        " Join Link_Result ON Link_Result.Id = Result.IdLink "
                                        " WHere IdLink = '"+LinkRezId+"'");
@@ -235,8 +281,8 @@ void Report::slot_FindData()
     list_id_Proverki_Find_Name_Sootvetstvie_Regylirovka_ColD.append(DateStart +"\n"+DateEnd);
     list_id_Proverki_Find_Name_Sootvetstvie_Regylirovka_ColD.append(FIO);
 
-    //Регулировка после Холода
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
+    //Регулировка после Холода в НУ
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
                                        " FROM"
                                        " (SELECT DISTINCT Link_Result.Id AS LinkRezId,[FIO],[Serial],[Etap],[DateStart],[DateEnd]"
                                        " FROM Link_Result"
@@ -256,7 +302,7 @@ void Report::slot_FindData()
 
     list_id_Proverki_Find_Name_Sootvetstvie_Regylirovka_ColDNY.clear();
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
                                        " FROM Result"
                                        " Join Link_Result ON Link_Result.Id = Result.IdLink "
                                        " WHere IdLink = '"+LinkRezId+"'");
@@ -297,7 +343,7 @@ void Report::slot_FindData()
     list_id_Proverki_Find_Name_Sootvetstvie_Regylirovka_ColDNY.append(FIO);
 
     //Регулировка в Тепле
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
                                        " FROM"
                                        " (SELECT DISTINCT Link_Result.Id AS LinkRezId,[FIO],[Serial],[Etap],[DateStart],[DateEnd]"
                                        " FROM Link_Result"
@@ -317,7 +363,7 @@ void Report::slot_FindData()
 
     list_id_Proverki_Find_Name_Sootvetstvie_Regylirovka_Hort.clear();
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
                                        " FROM Result"
                                        " Join Link_Result ON Link_Result.Id = Result.IdLink "
                                        " WHere IdLink = '"+LinkRezId+"'");
@@ -356,7 +402,7 @@ void Report::slot_FindData()
     list_id_Proverki_Find_Name_Sootvetstvie_Regylirovka_Hort.append(FIO);
 
     //Регулировка после Тепла в НУ
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
                                        " FROM"
                                        " (SELECT DISTINCT Link_Result.Id AS LinkRezId,[FIO],[Serial],[Etap],[DateStart],[DateEnd]"
                                        " FROM Link_Result"
@@ -375,7 +421,7 @@ void Report::slot_FindData()
 
     list_id_Proverki_Find_Name_Sootvetstvie_Regylirovka_HortNY.clear();
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
                                        " FROM Result"
                                        " Join Link_Result ON Link_Result.Id = Result.IdLink "
                                        " WHere IdLink = '"+LinkRezId+"'");
@@ -422,7 +468,7 @@ void Report::slot_FindData()
 
 
     //После тех.Тренировки в НУ
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
                                        " FROM"
                                        " (SELECT DISTINCT Link_Result.Id AS LinkRezId,[FIO],[Serial],[Etap],[DateStart],[DateEnd]"
                                        " FROM Link_Result"
@@ -441,7 +487,7 @@ void Report::slot_FindData()
 
     list_id_Proverki_Find_Name_Sootvetstvie_NextTexTest_NY.clear();
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
                                        " FROM Result"
                                        " Join Link_Result ON Link_Result.Id = Result.IdLink "
                                        " WHere IdLink = '"+LinkRezId+"'");
@@ -484,7 +530,7 @@ void Report::slot_FindData()
     //ПСИ
 
     //ПСИ в НУ
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
                                        " FROM"
                                        " (SELECT DISTINCT Link_Result.Id AS LinkRezId,[FIO],[Serial],[Etap],[DateStart],[DateEnd]"
                                        " FROM Link_Result"
@@ -504,7 +550,7 @@ void Report::slot_FindData()
 
     list_id_Proverki_Find_Name_Sootvetstvie_PSI_NY.clear();
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
                                        " FROM Result"
                                        " Join Link_Result ON Link_Result.Id = Result.IdLink "
                                        " WHere IdLink = '"+LinkRezId+"'");
@@ -545,7 +591,7 @@ void Report::slot_FindData()
     list_id_Proverki_Find_Name_Sootvetstvie_PSI_NY.append(FIO);
 
     //ПСИ в Холоде
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
                                        " FROM"
                                        " (SELECT DISTINCT Link_Result.Id AS LinkRezId,[FIO],[Serial],[Etap],[DateStart],[DateEnd]"
                                        " FROM Link_Result"
@@ -565,7 +611,7 @@ void Report::slot_FindData()
 
     list_id_Proverki_Find_Name_Sootvetstvie_PSI_ColD.clear();
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
                                        " FROM Result"
                                        " Join Link_Result ON Link_Result.Id = Result.IdLink "
                                        " WHere IdLink = '"+LinkRezId+"'");
@@ -605,7 +651,7 @@ void Report::slot_FindData()
     list_id_Proverki_Find_Name_Sootvetstvie_PSI_ColD.append(FIO);
 
     //ПСИ после Холода
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
                                        " FROM"
                                        " (SELECT DISTINCT Link_Result.Id AS LinkRezId,[FIO],[Serial],[Etap],[DateStart],[DateEnd]"
                                        " FROM Link_Result"
@@ -625,7 +671,7 @@ void Report::slot_FindData()
 
     list_id_Proverki_Find_Name_Sootvetstvie_PSI_ColDNY.clear();
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
                                        " FROM Result"
                                        " Join Link_Result ON Link_Result.Id = Result.IdLink "
                                        " WHere IdLink = '"+LinkRezId+"'");
@@ -666,7 +712,7 @@ void Report::slot_FindData()
     list_id_Proverki_Find_Name_Sootvetstvie_PSI_ColDNY.append(FIO);
 
     //ПСИ в Тепле
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
                                        " FROM"
                                        " (SELECT DISTINCT Link_Result.Id AS LinkRezId,[FIO],[Serial],[Etap],[DateStart],[DateEnd]"
                                        " FROM Link_Result"
@@ -686,7 +732,7 @@ void Report::slot_FindData()
 
     list_id_Proverki_Find_Name_Sootvetstvie_PSI_Hort.clear();
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
                                        " FROM Result"
                                        " Join Link_Result ON Link_Result.Id = Result.IdLink "
                                        " WHere IdLink = '"+LinkRezId+"'");
@@ -725,7 +771,7 @@ void Report::slot_FindData()
     list_id_Proverki_Find_Name_Sootvetstvie_PSI_Hort.append(FIO);
 
     //ПСИ после Тепла в НУ
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
                                        " FROM"
                                        " (SELECT DISTINCT Link_Result.Id AS LinkRezId,[FIO],[Serial],[Etap],[DateStart],[DateEnd]"
                                        " FROM Link_Result"
@@ -744,7 +790,7 @@ void Report::slot_FindData()
 
     list_id_Proverki_Find_Name_Sootvetstvie_PSI_HortNY.clear();
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
                                        " FROM Result"
                                        " Join Link_Result ON Link_Result.Id = Result.IdLink "
                                        " WHere IdLink = '"+LinkRezId+"'");
@@ -788,7 +834,7 @@ void Report::slot_FindData()
     ///
     ///
     //После неприрывной работы
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [LinkRezId],[FIO],[Serial],[Etap],MAX(DateStart) AS DateStart,[DateEnd]"
                                        " FROM"
                                        " (SELECT DISTINCT Link_Result.Id AS LinkRezId,[FIO],[Serial],[Etap],[DateStart],[DateEnd]"
                                        " FROM Link_Result"
@@ -807,7 +853,7 @@ void Report::slot_FindData()
 
     list_id_Proverki_Find_Name_Sootvetstvie_NextNeprWork_NY.clear();
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [Sootv],[IdProverki],[DateStayEnd],[DateStayStart]"
                                        " FROM Result"
                                        " Join Link_Result ON Link_Result.Id = Result.IdLink "
                                        " WHere IdLink = '"+LinkRezId+"'");
@@ -855,7 +901,17 @@ void Report::slot_FindData()
 }
 
 
+/*!
+    \brief Функция формирования отчета в PDF на основе HTML
 
+
+    Функция формирования PDF файла на основе HTML.\n
+
+    \author Sergey Smoglyuk
+    \version 1.0
+    \date Август 2018 года
+    \warning Данная функция не  используется в программе
+*/
 void Report::slot_CreatePDF()
 {
     QTextDocument doc;
@@ -906,7 +962,7 @@ void Report::slot_CreatePDF()
 
         for(int j=0; j < list_id_Device_Find.count();j++)
         {
-            QSqlQueryModel* SQL_id = gsg->BD->zaprosQueryModel("SELECT Sootv FROM Result WHERE IdDevice = '"+list_id_Device_Find.value(j)+"'  AND DateStart = '"+start_proverka+"' AND IdProverki = '"+list_id_Proverki_Find.value(i)+"' ");
+            QSqlQueryModel* SQL_id = alg->BD->zaprosQueryModel("SELECT Sootv FROM Result WHERE IdDevice = '"+list_id_Device_Find.value(j)+"'  AND DateStart = '"+start_proverka+"' AND IdProverki = '"+list_id_Proverki_Find.value(i)+"' ");
 
             bool flag = false;
 
@@ -914,7 +970,7 @@ void Report::slot_CreatePDF()
             {
                 QString  Sootv = SQL_id->data(SQL_id->index(k,0), Qt::EditRole).toString();
 
-                if(Sootv != "Соответствует")
+                if(Sootv != "Соотв.")
                 {
                     flag = true;
                     break;
@@ -932,11 +988,11 @@ void Report::slot_CreatePDF()
 
                 if(flag == false)
                 {
-                    table_html +=  " <td colspan=\"2\" align=\"center\">&nbsp;Соответствует&nbsp;</td>"; //&#10003;
+                    table_html +=  " <td colspan=\"2\" align=\"center\">&nbsp;Соотв.&nbsp;</td>"; //&#10003;
                 }
                 else
                 {
-                    table_html +=  " <td colspan=\"2\" align=\"center\">&nbsp;Не соответствует&nbsp;</td>"; //&#10008;;
+                    table_html +=  " <td colspan=\"2\" align=\"center\">&nbsp;Не соотв.&nbsp;</td>"; //&#10008;;
                 }
             }
 
@@ -948,9 +1004,6 @@ void Report::slot_CreatePDF()
     }
 
 
-    int  count_td = 0; // Количество всех колонок
-
-
 
     table_html += " </table>";
 
@@ -958,7 +1011,7 @@ void Report::slot_CreatePDF()
     doc.setHtml(table_html);
 
 
-    QString fileName = QFileDialog::getSaveFileName((QWidget* )0, "Export PDF", QString(), "*.pdf");
+    QString fileName = QFileDialog::getSaveFileName(nullptr, "Export PDF", QString(), "*.pdf"); //(QWidget* )0
     if (QFileInfo(fileName).suffix().isEmpty()) { fileName.append(".pdf"); }
 
     QPrinter printer(QPrinter::HighResolution);
@@ -976,6 +1029,16 @@ void Report::slot_CreatePDF()
 
 }
 
+/*!
+    \brief Функция формирования отчета в WORD, а затем в  PDF на основе QAxObject
+
+
+    Функция формирования отчета в WORD, а затем в  PDF на основе QAxObject.\n
+
+    \author Sergey Smoglyuk
+    \version 1.0
+    \date Август 2018 года
+*/
 void Report::slot_CreateWord()
 {
     QAxObject* WordApplication=new QAxObject("Word.Application"); // Создаю интерфейс к MSWord
@@ -990,12 +1053,16 @@ void Report::slot_CreateWord()
 
     QAxObject* PageSetup = ActiveDocument->querySubObject("PageSetup()");
     PageSetup->setProperty( "LeftMargin", 13);
-    PageSetup->setProperty( "RightMargin", 20);
-    PageSetup->setProperty( "TopMargin", 10);
+    PageSetup->setProperty( "RightMargin", 25);
+    PageSetup->setProperty( "TopMargin", 15);
     PageSetup->setProperty( "BottomMargin", 20);
 
+    //Портретный вид документа
+    PageSetup->setProperty("Orientation", 1);
+
+
     //Показать окно
-    //  WordApplication->setProperty( "Visible", true );
+    WordApplication->setProperty( "Visible", true );
 
     //Шрифт
     QAxObject *font = Range->querySubObject("Font");
@@ -1013,7 +1080,7 @@ void Report::slot_CreateWord()
     selection->setProperty("Alignment", 1);
     selection->dynamicCall("TypeText(const QString&)","Приемник, зав № МРК008\n"); //записываем текст
     selection->dynamicCall("TypeText(const QString&)","Электронный протокол предъявительских и приемосдаточных испытаний (ПСИ)\n");
-    selection->dynamicCall("TypeText(const QString&)","Регулировщик:\n");
+   // selection->dynamicCall("TypeText(const QString&)","Регулировщик:\n");
     selection->dynamicCall("TypeParagraph()");
 
 
@@ -1351,7 +1418,7 @@ void Report::slot_CreateWord()
 
 
 
-    QString fileName = QFileDialog::getSaveFileName((QWidget* )0, "Export Word", QString());//,"*.docx;;*.pdf"
+    QString fileName = QFileDialog::getSaveFileName(nullptr, "Export Word", QString());//,"*.docx;;*.pdf" (QWidget* )0
     //  if (QFileInfo(fileName).suffix().isEmpty()) { fileName.append(".docx"); }
 
     // QString fileName=QFileDialog::getSaveFileName(0,"save file","export_table",
@@ -1365,35 +1432,50 @@ void Report::slot_CreateWord()
 
     ActiveDocument->dynamicCall("ExportAsFixedFormat (const QString&,const QString&)", fileName.split('.').first(),"17");
 
+    ActiveDocument->dynamicCall("SaveAs (const QString&)", fileName);
     ActiveDocument->dynamicCall("SaveAs2 (const QString&)", fileName);
     ActiveDocument->dynamicCall("Close (boolean)", false);
     WordApplication->dynamicCall("Quit (void)");
+
+    delete WordApplication;
 }
 
+/*!
+    \brief Функция поиска Серийного номера в БД
+
+
+    Функция поиска Серийного номера в БД.\n
+
+    \author Sergey Smoglyuk
+    \version 1.0
+    \date Август 2018 года
+*/
 void Report::slot_GetSerial()
 {
     //поиск id существующих Проверок в Бд
-    QSqlQueryModel* SQL_id;
-
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT * FROM Serial");
 
     list_id_Serial.clear();
     list_name_Serial.clear();
 
+    list_id_Serial = alg->BD->report("SELECT * FROM Serial",0);
+    list_name_Serial = alg->BD->report("SELECT * FROM Serial",1);
 
-
-    for(int i=0;i< SQL_id->rowCount();i++)
-    {
-        list_id_Serial.append(SQL_id->data(SQL_id->index(i,0), Qt::EditRole).toString());
-        list_name_Serial.append(SQL_id->data(SQL_id->index(i,1), Qt::EditRole).toString());
-    }
-
-
+    qDebug() << list_name_Serial;
 
     emit signal_list(list_name_Serial);
 
 }
 
+/*!
+    \brief Функция поиска ФИО в БД
+
+
+    Функция поиска ФИО в БД.\n
+
+    \author Sergey Smoglyuk
+    \version 1.0
+    \date Август 2018 года
+*/
 void Report::slot_GetFIO(QString serial)
 {
 
@@ -1406,7 +1488,7 @@ void Report::slot_GetFIO(QString serial)
     //поиск id существующих Проверок в Бд
     QSqlQueryModel* SQL_id;
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [IdUser],[FIO]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [IdUser],[FIO]"
                                        " FROM Link_Result"
                                        " Join User ON Link_Result.IdUser = User.Id"
                                        " JOIN Serial ON Link_Result.IdSerial = Serial.Id"
@@ -1427,13 +1509,23 @@ void Report::slot_GetFIO(QString serial)
 
 }
 
+/*!
+    \brief Функция поиска Этапа в БД
+
+
+    Функция поиска Этапа в БД.\n
+
+    \author Sergey Smoglyuk
+    \version 1.0
+    \date Август 2018 года
+*/
 void Report::slot_GetEtap(QString serial,QString FIO)
 {
 
     //поиск id существующих Проверок в Бд
     QSqlQueryModel* SQL_id;
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [IdEtap],[Etap]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [IdEtap],[Etap]"
                                        " FROM Link_Result"
                                        " Join User ON Link_Result.IdUser = User.Id"
                                        " JOIN Serial ON Link_Result.IdSerial = Serial.Id"
@@ -1457,12 +1549,22 @@ void Report::slot_GetEtap(QString serial,QString FIO)
 
 }
 
+/*!
+    \brief Функция поиска информации в выбранном этапе в БД
+
+
+    Функция поиска информации в выбранном этапе в БД.\n
+
+    \author Sergey Smoglyuk
+    \version 1.0
+    \date Август 2018 года
+*/
 void Report::slot_GetEtapData(QString serial, QString FIO, QString Etap)
 {
     //поиск id существующих Проверок в Бд
     QSqlQueryModel* SQL_id;
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [IdDate],[DateStart],[DateEnd]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [IdDate],[DateStart],[DateEnd]"
                                        " FROM Link_Result"
                                        " Join User ON Link_Result.IdUser = User.Id"
                                        " JOIN Serial ON Link_Result.IdSerial = Serial.Id"
@@ -1493,12 +1595,22 @@ void Report::slot_GetEtapData(QString serial, QString FIO, QString Etap)
     emit signal_listSerialDate(list_start_Date,list_end_Date);
 }
 
+/*!
+    \brief Функция поиска информации для генерации отчета в БД
+
+
+    Функция поиска информации для генерации отчета в БД.\n
+
+    \author Sergey Smoglyuk
+    \version 1.0
+    \date Август 2018 года
+*/
 void Report::slot_GetResult(QString serial, QString FIO, QString Etap, QString Date)
 {
     //поиск id существующих Проверок в Бд
     QSqlQueryModel* SQL_id;
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT *"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT *"
                                        " FROM Link_Result"
                                        " Join User ON Link_Result.IdUser = User.Id"
                                        " JOIN Serial ON Link_Result.IdSerial = Serial.Id"
@@ -1515,7 +1627,7 @@ void Report::slot_GetResult(QString serial, QString FIO, QString Etap, QString D
     IdResult = SQL_id->data(SQL_id->index(0,0), Qt::EditRole).toString();
 
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [IdProverki],[NameProverki],[Treb],[Sootv],[DateStayStart],[DateStayEnd]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [IdProverki],[NameProverki],[Treb],[Sootv],[DateStayStart],[DateStayEnd]"
                                        " FROM Result"
                                        " JOIN Proverki ON Result.IdProverki = Proverki.Id"
                                        " WHere IdLink = '"+IdResult+"'");
@@ -1535,14 +1647,23 @@ void Report::slot_GetResult(QString serial, QString FIO, QString Etap, QString D
     {
         list_Result_IdProverki.append(SQL_id->data(SQL_id->index(i,0), Qt::EditRole).toString());
         list_Result_NameProverki.append(SQL_id->data(SQL_id->index(i,1), Qt::EditRole).toString());
-        list_Result_Treb.append(SQL_id->data(SQL_id->index(i,2), Qt::EditRole).toString());
+
+        auto treb = SQL_id->data(SQL_id->index(i,2), Qt::EditRole).toString().split('\n');
+        QString strTreb = nullptr;
+        for(int j =0; j < treb.count();j++)
+        {
+            strTreb += treb[j]+" ";
+        }
+        //qDebug() << strTreb;
+        list_Result_Treb.append(strTreb);
+
         list_Result_Sootv.append(SQL_id->data(SQL_id->index(i,3), Qt::EditRole).toString());
         list_Result_DateStayStart.append(SQL_id->data(SQL_id->index(i,4), Qt::EditRole).toString());
         list_Result_DateStayEnd.append(SQL_id->data(SQL_id->index(i,5), Qt::EditRole).toString());
     }
 
 
-    SQL_id = gsg->BD->zaprosQueryModel("SELECT DISTINCT [NP],[Sootv]"
+    SQL_id = alg->BD->zaprosQueryModel("SELECT DISTINCT [NP],[Sootv]"
                                        " FROM Liter"
                                        " WHere IdLink = '"+IdResult+"'");
 
@@ -1557,55 +1678,20 @@ void Report::slot_GetResult(QString serial, QString FIO, QString Etap, QString D
     emit signal_listResult(list_Result_IdProverki,list_Result_NameProverki,list_Result_Treb,list_Result_Sootv,list_Result_DateStayStart,list_Result_DateStayEnd,list_NP,list_NP_Sootv);
 }
 
+/*!
+    \brief Функция поиска информации для генерации отчета в БД
+
+
+    Функция поиска информации для генерации отчета в БД.\n
+
+    \author Sergey Smoglyuk
+    \version 1.0
+    \date Август 2018 года
+    \warning Данная функция используется в QML для выбора проверки и этапов.
+*/
 void Report::slot_setSelect(QString set, int setId)
 {
     Select[setId] = set;
 
     emit signal_listSelectChanged(Select);
-}
-
-int Report::countRow()
-{
-    QSqlQuery query;
-    query.prepare("SELECT COUNT(*) FROM " TABLE " ;");
-    query.exec();
-    query.first();
-
-    return query.value(0).toInt();
-}
-
-void Report::exportCSV()
-{
-    /* Создаём объекта файла CSV и указываем путь к этому файлу
-        * Не забудьте указать валидный путь и расширение .csv
-        * */
-       QFile csvFile("C:/example/excelExample.csv");
-
-       // Открываем, или создаём файл, если он не существует
-       if(csvFile.open( QIODevice::WriteOnly ))
-       {
-           // Создаём текстовый поток, в который будем писать данные
-           QTextStream textStream( &csvFile );
-           QStringList stringList; // Вспомогательный объект QSqtringList, который сформирует строку
-
-           // Проходимся по всем строкам ...
-           for( int row = 0; row < this->countRow(); row++ )
-           {
-               stringList.clear(); // ... каждый раз очищая stringList
-               /* Если обратить внимание в заголовочный файл, то
-                * можно увидеть в перечислении Roles, что ролей модели всего 4
-                * */
-               for( int column = 0; column < 4; column++ )
-               {
-                   // Записываем в stringList каждый элемент таблицы
-                 //  stringList << this->data(this->index(row, column), Qt::UserRole + 1 + column).toString();
-               }
-               /* После чего отправляем весь stringList в файл через текстовый поток
-                * добавляя разделители в виде ";", а также поставив в конце символ окончания строки
-                * */
-               textStream << stringList.join( ';' )+"\n";
-           }
-           // Закрываем файл - готово
-           csvFile.close();
-       }
 }

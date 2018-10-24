@@ -3,9 +3,14 @@
 
 #include <QObject>
 
+#include <QVariant>
+
 #include <gsgmodel.h>
 #include <n6700model.h>
 #include <portmodel.h>
+
+#include <osuilografmodel.h>
+#include <tp8model.h>
 
 #include <relizproverka.h>
 
@@ -13,19 +18,19 @@
 #include "relizproverkatimer.h"
 
 
-#include "screencapture.h";
-
 class proverkaItem  : public QObject
 {
 
     Q_OBJECT
 
 public:
-    explicit proverkaItem(int index,N6700Model* n6700, gsgModel* gsgModelGet,PortModel *port,
-                          bool vnytrenGenGet, bool goodGet,QString GetName,screenCapture* screenClassGet, QObject *parent = 0);
+    explicit proverkaItem(int index,int indexList,N6700Model* n6700, gsgModel* gsgModelGet,OsuilografModel* _os, tp8Model* _tp, PortModel *port,bool vnytrenGenGet, bool goodGet,QString GetName, QObject *parent = nullptr);
+    ~proverkaItem();
 
 
-
+    //Ток
+    Q_PROPERTY(QString indexNP READ indexNP NOTIFY indexNPChanged)
+    const QString & indexNP();
 
     //Ток
     Q_PROPERTY(QString tok READ tok NOTIFY tokChanged)
@@ -105,18 +110,34 @@ public:
     const QVariantList & listSpytnik_Liters() const;
     void setlistSpytnik_Liters(const QVariantList & listSpytnik_Liters);
 
+    Q_PROPERTY(QString  proverkaName READ proverkaName NOTIFY signal_proverkaNameChanged)
+    const QString & proverkaName() const;
+    void setProverkaName(const QString & proverkaName);
+
+
+
+
 
     int index;
+    int indexList;
+
     N6700Model* n6700model;
+    OsuilografModel* os;
+    tp8Model* tp;
 
     RelizProverka* relizProverka;
+
 
     relizproverkaTimer* relizProverkaTimer;
 
 
+    QVariantList list;
 
+    QStringList get_tok;
+    QStringList get_volt;
+    QStringList get_p;
 
-
+    QString m_indexNP;
 
 public slots:
      void setTok(const QString & tok);
@@ -133,6 +154,9 @@ public slots:
      void slot_Good(bool);
      void slot_IndexProverki(QString);
 
+
+     int slot_IndexNp();
+
      void slot_setListSpytnik(QStringList,QStringList,QStringList);
 
 signals:
@@ -146,6 +170,7 @@ signals:
     void vnytrenGenChanged();
     void goodChanged(bool);
     void indexProverkiChanged(QString);
+    void indexNPChanged(QString);
 
     void signal_StartProverka();
 
@@ -155,7 +180,9 @@ signals:
     void signal_listSpytnik_NameChanged(QVariantList);
     void signal_listSpytnik_LitersChanged(QVariantList);
 
-     void signal_StartProverkaIndex(QString namberProverkaStart);
+    void signal_StartProverkaIndex(QString namberProverkaStart);
+
+    void signal_proverkaNameChanged(QString);
 
 
 
@@ -178,7 +205,9 @@ private:
     QVariantList m_listSpytnik_Name;
     QVariantList m_listSpytnik_Liters;
 
-    screenCapture* screenClass;
+    QString m_proverkaName;
+
+
 
 };
 

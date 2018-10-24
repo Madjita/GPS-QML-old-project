@@ -1,51 +1,48 @@
 #include "port.h"
-#include <QDebug.h>
+
 
 #include <QThread>
 
 Port::Port(QObject *parent) :
     QObject(parent),
-    flag_work(false),
-    flag_start_MRK(false),
-    thisPort(new QSerialPort()),
     CountFindALL(0),
+    flag_start_MRK(false),
     position_liters(0),
     position_number(1),
     position_Mode(2),
-    position_A(18)
+    position_A(18),
+    // thisPort(new QSerialPort()),
+    flag_work(false),
+    flag_getName(false),
+    flag_waitloadingMRK(false),
+    flag_waitloadingMRK_proverka(false)
 {
-
-   // this->moveToThread(new QThread()); //помещаем класс в поток
-    qDebug () << "Помещаем класс << Port >> в поток : " << this->thread();
-
-    QObject::connect(this->thread(),&QThread::started,this,&Port::process_start);
-
-  //  this->thread()->start();
-    qDebug () << "Запускаем поток << Port >> : " << this->thread();
-
-    process_start();
+    //помещаем класс в поток
+    this->moveToThread(new QThread());
+    connect(this->thread(),&QThread::started,this,&Port::process_start);
+    this->thread()->start();
 
 }
 
 Port::~Port()
 {
     qDebug("By in Thread!");
+
+    emit stopTimerMrk();
+
     emit finihed_Port(); // Сигнал о завершении работы
+
 }
 
 void Port::process_start()
 {
-    qDebug () << "QSerialPort* thisPort : create (new)";
     thisPort = new QSerialPort();
-   qDebug () << "QSerialPort* thisPort = " << sizeof(thisPort);
-//    thisPort->moveToThread(new QThread()); //помещаем сам порт в поток
-//    qDebug () << "Помещаем класс << QSerialPort >> в поток : " << thisPort->thread();
-
 
     qDebug("Open the port.cpp on the new Thread");
-    QObject::connect(thisPort,SIGNAL(error(QSerialPort::SerialPortError)),this,SLOT(handleError(QSerialPort::SerialPortError))); // подключаем првоерку ошибок порта
-    QObject::connect(thisPort, SIGNAL(readyRead()),this,SLOT(ReadInProt()),Qt::QueuedConnection); //подключаем чтение с порта по сигналу readyRead()
 
+    connect(thisPort, &QSerialPort::readyRead,this,&Port::ReadInProt); //подключаем чтение с порта по сигналу readyRead()
+
+    //connect(thisPort, SIGNAL(readyRead()),this,SLOT(getComData())); //подключаем чтение с порта по сигналу readyRead()
 
     listSP = new QStringList();
 
@@ -54,46 +51,61 @@ void Port::process_start()
 
     container = new frameExample();
 
+    for(int i=0; i < 24;i++)
+    {
+        frame[i] = new frame1();
+    }
 
-    QObject::connect(  thisPort->thread(),SIGNAL(started()), this,SLOT(process_Port())); // Переназначения метода run
-    QObject::connect(  this, SIGNAL(finihed_Port()),  thisPort->thread(),SLOT(quit())); // Переназначение метода выход
-    QObject::connect(  thisPort->thread(),SIGNAL(finished()), this,SLOT(deleteLater())); // Удалить к чертям поток
-    QObject::connect(  this,SIGNAL(finihed_Port()),  thisPort->thread(),SLOT(deleteLater())); // Удалить к чертям поток
 
-   // thisPort->thread()->start();
-    qDebug () << "Запускаем поток << QSerialPort >> : " << thisPort->thread();
+    connect(  thisPort->thread(),&QThread::started, this,&Port::process_Port); // Переназначения метода run
+    connect(  this, &Port::finihed_Port,  thisPort->thread(),&QThread::quit); // Переназначение метода выход
+
 
     //Инициализация таймеров
     timer_MRK_Data = new QTimer();
+    timer_errorStartMRk = new QTimer();
 
-    QObject::connect(timer_MRK_Data,&QTimer::timeout,this,&Port::GetMrk);
-    QObject::connect(this,SIGNAL(startTimerMrk(int)),timer_MRK_Data,SLOT(start(int)));
-    QObject::connect(this,&Port::stopTimerMrk,timer_MRK_Data,&QTimer::stop);
-
-
-    connect(this,SIGNAL(writeData(QByteArray)),this,SLOT(WriteToPort(QByteArray))); // отправить данные
+    connect(timer_MRK_Data,&QTimer::timeout,this,&Port::GetMrk);
+    connect(this,SIGNAL(startTimerMrk(int)),timer_MRK_Data,SLOT(start(int)));
+    connect(this,&Port::stopTimerMrk,timer_MRK_Data,&QTimer::stop);
 
 
+    connect(timer_errorStartMRk,&QTimer::timeout,this,&Port::timerStartMrk);
+    connect(this,SIGNAL(startTimerMrkError(int)),timer_errorStartMRk,SLOT(start(int)));
+    connect(this,&Port::stopTimerMrk,timer_errorStartMRk,&QTimer::stop);
 
-    qRegisterMetaType<QSerialPort::SerialPortError>();
-    qRegisterMetaType<QVector<int>>();
+
+    connect(this, &Port::start_UdpZapros,this,&Port::GetMrk);
+
+
+    //connect(this,SIGNAL(writeData(QByteArray)),this,SLOT(WriteToPort(QByteArray))); // отправить данные
+    connect(this,&Port::writeData,this,&Port::WriteToPort);
+
+
+    //qRegisterMetaType<QSerialPort::SerialPortError>();
+    //qRegisterMetaType<QVector<int>>();
 }
 
 
 void Port::process_Port() //Выполняется при старте класса
 {
 
-    qDebug("Open the port.cpp on the new Thread");
-    QObject::connect(thisPort,SIGNAL(error(QSerialPort::SerialPortError)),this,SLOT(handleError(QSerialPort::SerialPortError))); // подключаем првоерку ошибок порта
-    QObject::connect(thisPort, SIGNAL(readyRead()),this,SLOT(ReadInProt()),Qt::DirectConnection); //подключаем чтение с порта по сигналу readyRead()
+    //    qDebug("Open the port.cpp on the new Thread NEW");
+    //    connect(thisPort, SIGNAL(readyRead()),this,SLOT(ReadInProt())); //подключаем чтение с порта по сигналу readyRead()
 
 
-    listSP = new QStringList();
+    //    listSP = new QStringList();
 
-    listSP_Amplitude = new QStringList();
-    listSP_Name = new QStringList();
+    //    listSP_Amplitude = new QStringList();
+    //    listSP_Name = new QStringList();
 
-    container = new frameExample();
+    //    container = new frameExample();
+
+    //    for(int i=0; i < 24;i++)
+    //    {
+    //        frame[i] = new frame1();
+    //    }
+
 
 }
 
@@ -101,11 +113,11 @@ void Port::Write_Setting_Port(QString name, int baudrate, int DataBits, int pari
 {
     SettingsPort.name = name;
 
-    SettingsPort.baudRate = (QSerialPort::BaudRate) baudrate;
-    SettingsPort.dataBits = (QSerialPort::DataBits) DataBits;
-    SettingsPort.parity = (QSerialPort::Parity) parity;
-    SettingsPort.stopBits = (QSerialPort::StopBits) StopBits;
-    SettingsPort.flowControl = (QSerialPort::FlowControl) FlowControl;
+    SettingsPort.baudRate = static_cast<QSerialPort::BaudRate>(baudrate);
+    SettingsPort.dataBits = static_cast<QSerialPort::DataBits>(DataBits);
+    SettingsPort.parity = static_cast<QSerialPort::Parity>(parity);
+    SettingsPort.stopBits = static_cast<QSerialPort::StopBits>(StopBits);
+    SettingsPort.flowControl = static_cast<QSerialPort::FlowControl>(FlowControl);
 
     //        SettingsPort.baudRate = (QSerialPort::BaudRate) baudrate;
     //        SettingsPort.dataBits = QSerialPort::Data8;
@@ -117,9 +129,7 @@ void Port::Write_Setting_Port(QString name, int baudrate, int DataBits, int pari
 
 void Port::ConnectPort(void) //Процедура подключения
 {
-     qDebug() << "OPEN the PORT ";
     thisPort->setPortName(SettingsPort.name);
-
 
 
     if(thisPort->open(QIODevice::ReadWrite))
@@ -128,44 +138,28 @@ void Port::ConnectPort(void) //Процедура подключения
         {
             if(thisPort->isOpen())
             {
-                qDebug() << SettingsPort.name + " >> Открыт!\r";
-                //error_((SettingsPort.name + " >> Открыт!\r").toLocal8Bit());
-
+                //Открыт порт
                 flag_work = true;
-
 
                 emit outPortOpen(SettingsPort.name);
             }
         }
         else
         {
-
             flag_work = false;
             flag_start_MRK = false;
 
             emit outPortOpen(thisPort->errorString());
 
-
             thisPort->close();
-            // error_(thisPort->errorString().toLocal8Bit());
         }
     }else
     {
         thisPort->close();
-        qDebug () << thisPort->errorString();
         emit outPortOpen(thisPort->errorString());
-        // error_(thisPort->errorString().toLocal8Bit());
     }
 }
 
-void Port::handleError(QSerialPort::SerialPortError error) //Проверка ошибок при работе
-{
-    if((thisPort->isOpen()) && (error == QSerialPort::ResourceError))
-    {
-        error_(thisPort->errorString().toLocal8Bit());
-        DisconnectPort();
-    }
-}
 
 void Port::DisconnectPort() //Отключаем порт
 {
@@ -186,6 +180,34 @@ void Port::WriteToPort(QByteArray data)//запись данных в порт
     if(thisPort->isOpen())
     {
         thisPort->write(data);
+        thisPort->flush();
+    }
+}
+
+void Port::timerStartMrk()
+{
+    countWaitMRK++;
+
+    if(countWaitMRK > 20)
+    {
+        qDebug() << "timerStartMrk ERRR " << flag_waitloadingMRK << flag_waitloadingMRK_proverka;
+
+        timer_errorStartMRk->stop();
+        emit stopTimerMrk();
+
+        if(flag_waitloadingMRK && flag_waitloadingMRK_proverka)
+        {
+            emit signal_MRkLoadProverka(false);
+        }
+        else
+        {
+            emit signal_MRkLoad(false);
+        }
+
+        flag_waitloadingMRK = false;
+        flag_waitloadingMRK_proverka = false;
+
+        countWaitMRK =0;
     }
 }
 
@@ -198,56 +220,27 @@ void Port::END()
 
 void Port::Work()
 {
-//    if(timer_MRK_Data->isActive())
-//    {
-//            qDebug () << "Уже запущен";
-//    }
-//    else
-//    {
-        emit startTimerMrk(500);
- //   }
+    emit startTimerMrk(750);
+    emit startTimerMrkError(1000);
 }
-
-
 
 void Port::GetMrk()
 {
-
-    //    QByteArray b;
-    //    b.append(0xfe);
-    //    b.append(0xfe);
-    //    b.append(0x02);
-    //    b.append(0x18);
-    //    b.append(0x01);
-    //    b.append('\0');
-    //    b.append(0x02);
-    //    b.append('\0');
-    //    b.append(0x03);
-    //    b.append('\0');
-    //    //    b.append(0x04);
-    //    //    b.append('\0');
-    //    b.append(0x88);
-    //    b.append('\0');
-    //    b.append(0x01);
-    //    b.append(0xff);
-    //    b.append(0xff);
+    dataBuild.clear();
+    data.clear();
 
     //Запрос 1 кадра
     QByteArray b;
-    b.append(0xfe);
-    b.append(0xfe);
-    b.append(0x02);
+    b.append(static_cast<char>(0xfe));
+    b.append(static_cast<char>(0xfe));
+    b.append('\0');
     b.append(0x13);
     b.append(0x01);
     b.append(0x01);
-    b.append(0xff);
-    b.append(0xff);
+    b.append(static_cast<char>(0xff));
+    b.append(static_cast<char>(0xff));
 
-    char c = NULL;
-
-    char c1 = NULL;
-
-    c1 = b[2]^b[3]^b[4];
+    char c = '\0';
 
     for(int i=2; i < b.count()-3;i++)
     {
@@ -255,35 +248,35 @@ void Port::GetMrk()
         b[b.count()-3] = c;
     }
 
-    this->WriteToPort(b);
+    CountFindGLONASS =0;
+    CountFindGPS = 0;
+    CountFindALL = 0;
 
-
+    emit writeData(b);
 
 }
 
 void Port::GetMrk_OT()
 {
     emit stopTimerMrk();
+    dataBuild.clear();
+    data.clear();
 
     flag_GetMrk_liters = true;
-    qDebug () << " START 2 ZAPROS  LITERS OT ";
+    qDebug() << " START 2 ZAPROS  LITERS OT ";
 
     QByteArray b;
     // Запрос 2 кадра
-    b.append(0xfe);
-    b.append(0xfe);
-    b.append(0x02);
+    b.append(static_cast<char>(0xfe));
+    b.append(static_cast<char>(0xfe));
+    b.append('\0');
     b.append(0x13);
     b.append(0x02);
     b.append(0x01);
-    b.append(0xff);
-    b.append(0xff);
+    b.append(static_cast<char>(0xff));
+    b.append(static_cast<char>(0xff));
 
-    char c = NULL;
-
-    char c1 = NULL;
-
-    c1 = b[2]^b[3]^b[4];
+    char c = '\0';
 
     for(int i=2; i < b.count()-3;i++)
     {
@@ -291,12 +284,9 @@ void Port::GetMrk_OT()
         b[b.count()-3] = c;
     }
 
-    //  this->WriteToPort(b);
-
-   // thisPort->clear(); //Пока что убрал проверить
-
     emit writeData(b);
 }
+
 
 
 
@@ -304,40 +294,36 @@ void Port::GetMrk_OT()
 void Port::GetMrk_liters(int liter)
 {
     emit stopTimerMrk();
+    dataBuild.clear();
+    data.clear();
 
-    qDebug () << "Установка литеры в 24 канала ";
+    //qDebug() << "Установка литеры в 24 канала ";
 
     QByteArray b;
 
-    b.append(0xfe);
-    b.append(0xfe);
-    b.append(0x02);
+    b.append(static_cast<char>(0xfe));
+    b.append(static_cast<char>(0xfe));
+    b.append('\0');
     b.append(0x15);
     b.append(0x01);
-    //for(int i =22 ; i < 24;i++)
     for(int i =0 ; i < 24;i++)
     {
-        //qDebug () << i;
-        b.append(UINT8(i));
-        b.append(UINT8(liter));          //UINT8(2) - вторая литера это 24 спутник
+        b.append(static_cast<char>(UINT8(i)));
+        b.append(static_cast<char>(UINT8(liter)));          //UINT8(2) - вторая литера это 24 спутник
 
         b.append(0x78);
-        b.append(0xEC);
+        b.append(static_cast<char>(0xEC));
 
-        b.append(0x88);
+        b.append(static_cast<char>(0x88));
         b.append(0x13);
     }
 
     b.append(0x01);
-    b.append(0xff);
-    b.append(0xff);
+    b.append(static_cast<char>(0xff));
+    b.append(static_cast<char>(0xff));
 
 
-    char c = NULL;
-
-    char c1 = NULL;
-
-    c1 = b[2]^b[3]^b[4];
+    char c = '\0';
 
     for(int i=2; i < b.count()-3;i++)
     {
@@ -345,48 +331,43 @@ void Port::GetMrk_liters(int liter)
         b[b.count()-3] = c;
     }
 
-    thisPort->clear();
-
     emit writeData(b);
 
-    emit startTimerMrk(500);
+
+    count_setLiters++;
+    if(count_setLiters >= 10)
+    {
+        emit startTimerMrk(750);
+        emit startTimerMrkError(1000);
+        count_setLiters=0;
+    }
 
 }
 
 
-void Port::GetMrk_liters_2(int liter)
+void Port::GetMrk_Name()
 {
+    count_setLiters = 0;
+    dataBuild.clear();
+    data.clear();
+    nameMRK.clear();
+
+    //Запрос Идентификационный номер платы навига-ционного приемника в составе МРК
+
+    flag_getName = true;
+
     QByteArray b;
+    b.append(static_cast<char>(0xfe));
+    b.append(static_cast<char>(0xfe));
+    b.append('\0');
+    b.append(0x18);
+    b.append(static_cast<char>(0xA9));
+    b.append('\0');
+    b.append(0x01); //контрольная сумма
+    b.append(static_cast<char>(0xff));
+    b.append(static_cast<char>(0xff));
 
-    b.append(0xfe);
-    b.append(0xfe);
-    b.append(0x02);
-    b.append(0x15);
-    b.append(0x01);
-    //for(int i =22 ; i < 24;i++)
-    for(int i =22 ; i < 24;i++)
-    {
-       // qDebug () << i;
-        b.append(UINT8(i));
-        b.append(UINT8(liter));          //UINT8(2) - вторая литера это 24 спутник
-
-        b.append(0x78);
-        b.append(0xEC);
-
-        b.append(0x88);
-        b.append(0x13);
-    }
-
-    b.append(0x01);
-    b.append(0xff);
-    b.append(0xff);
-
-
-    char c = NULL;
-
-    char c1 = NULL;
-
-    c1 = b[2]^b[3]^b[4];
+    char c = '\0';
 
     for(int i=2; i < b.count()-3;i++)
     {
@@ -394,37 +375,32 @@ void Port::GetMrk_liters_2(int liter)
         b[b.count()-3] = c;
     }
 
-
-    thisPort->clear();
-
     emit writeData(b);
-
-    emit startTimerMrk(200);
 }
 
 
 
 
-bool Proverka(QByteArray data)
-{
-    QByteArray ok;
-    ok.append(0xfe);
-    ok.append(0xfe);
-    ok.append(0x02);
-    ok.append('\0');
-    ok.append(0x02);
-    ok.append(0xff);
-    ok.append(0xff);
+//bool Proverka(QByteArray data)
+//{
+//    QByteArray ok;
+//    ok.append(static_cast<char>(0xfe));
+//    ok.append(static_cast<char>(0xfe));
+//    ok.append(0x02);
+//    ok.append('\0');
+//    ok.append(0x02);
+//    ok.append(static_cast<char>(0xff));
+//    ok.append(static_cast<char>(0xff));
 
-    if(data == ok)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
+//    if(data == ok)
+//    {
+//        return true;
+//    }
+//    else
+//    {
+//        return false;
+//    }
+//}
 
 
 //void Port::ReadInProt() // чтение данных из порта
@@ -458,7 +434,7 @@ bool Proverka(QByteArray data)
 
 
 
-//  //  // qDebug() << "ReadInProt  << " <<  data;
+//  //  //qDebug() << "ReadInProt  << " <<  data;
 
 
 
@@ -477,7 +453,7 @@ bool Proverka(QByteArray data)
 //        if(flag_GetMrk_liters == true && data[4] == 0x02  && data.count() > 10  && ( data[data.count()-1] == 0xff && data[data.count()-2] == 0xff))
 //        {
 
-//            qDebug () << "START LITERS OT ";
+//            //qDebug() << "START LITERS OT ";
 
 //            flag_GetMrk_liters = false;
 
@@ -492,8 +468,8 @@ bool Proverka(QByteArray data)
 //            data.remove(data.count()-3,3);
 
 
-//            b.append(0xfe);
-//            b.append(0xfe);
+//           b.append(static_cast<char>(0xfe));
+//           b.append(static_cast<char>(0xfe));
 //            b.append(0x02);
 //            b.append(0x15);
 
@@ -502,8 +478,8 @@ bool Proverka(QByteArray data)
 //                b.append(data[i]);
 //            }
 //            b.append(0x01);
-//            b.append(0xff);
-//            b.append(0xff);
+//           b.append(static_cast<char>(0xff));
+//           b.append(static_cast<char>(0xff));
 //            char c = NULL;
 
 //            char c1 = NULL;
@@ -528,7 +504,7 @@ bool Proverka(QByteArray data)
 //            if(data[data.count()-1] == 0xff && data[data.count()-2] == 0xff)
 //            {
 
-//             //   // qDebug() << "flag_end_MRK   << " <<  flag_end_MRK;
+//             //   //qDebug() << "flag_end_MRK   << " <<  flag_end_MRK;
 
 //                if(flag_end_MRK== true)
 //                {
@@ -543,8 +519,8 @@ bool Proverka(QByteArray data)
 //                    return ;
 //                }
 
-//             //   // qDebug() << "flag_start_MRK   << " <<  flag_start_MRK;
-//            //    // qDebug() << "flag   << " <<  flag;
+//             //   //qDebug() << "flag_start_MRK   << " <<  flag_start_MRK;
+//            //    //qDebug() << "flag   << " <<  flag;
 
 
 //                if(flag)
@@ -558,7 +534,7 @@ bool Proverka(QByteArray data)
 
 //                    container = (frameExample *)data.data();
 
-//                    // // qDebug() << container->A1L1[0];
+//                    //qDebug() << container->A1L1[0];
 
 //                    RazborFrame(*container);
 
@@ -573,109 +549,129 @@ bool Proverka(QByteArray data)
 //}
 
 
-
+int errorCount =0;
 
 void Port::ReadInProt() // чтение данных из порта
 {
 
-
-    dataBuild.append(thisPort->readAll());
-
-    for(int i=0; i < dataBuild.count();i++)
+    if(timer_errorStartMRk->isActive())
     {
+        timer_errorStartMRk->stop();
+        countWaitMRK =0;
+    }
 
-        data.append(dataBuild[i]);
+    dataBuild.append(thisPort->readAll()); // чтение данных с COM
 
-        if(i > 0 && dataBuild[i] == 0xfe && dataBuild[i-1] == 0xfe)
+//    qDebug() << "Count : " <<  dataBuild.count();
+//    qDebug() << "====================================";
+//    qDebug() << dataBuild.toHex(' ');
+//    qDebug() << "====================================";
+
+    if(dataBuild.count() > 0)
+    {
+        if(getMessage(dataBuild))
         {
-            data.clear();
-            data.append(0xfe);
-            data.append(0xfe);
-        }
 
-
-        if(data[i] == 0xfe)
-        {
-            if(i > 1)
+            if(data.count() < 10)
             {
-                if(data[i] == 0xfe && data[i-1] == 0xff)
+                flag = false;
+                flag = Proverka(data);
+
+               // qDebug() << data.toHex(' ');
+
+                if(flag)
                 {
-                    data.remove(0,i);
-                    dataBuild.remove(0,i);
+                    //qDebug() << nameMRK << "Message Good : " << data.toHex(' ').split(' ').value(3);
                 }
                 else
                 {
-                    if(data[i] == 0xff && data[i-1] == 0xfe)
-                    {
-                        data.remove(0,i);
-                        dataBuild.remove(0,i);
-                    }
+                    //qDebug() << nameMRK << "ERROR : " << data.toHex(' ').split(' ').value(3);
                 }
 
-            }
-
-        }
-
-
-        if(data[i] == 0xff)
-        {
-            if(i > 0 && data[i-1] == 0xff)
-            {
-
-                //data.clear();
+                data.clear();
                 dataBuild.clear();
+                zahvat_fefe = false;
+                zahvat_ffff = false;
+                return ;
 
-                break;
             }
-        }
-
-    }
-
-    // qDebug() << "ReadInProt  << " <<  data;
-
-    if(data[0] != 0xfe || data[1] != 0xfe || data[data.count()-1] != 0xff || data[data.count()-2] != 0xff )
-    {
-
-
-        dataBuild.clear();
-
-        return ;
-    }
-
-
-
-
-    if (data != NULL)
-    {
-
-        if(data.count() < 10)
-        {
-            flag = false;
-            flag = Proverka(data);
-
-            data.clear();
-            dataBuild.clear();
-
-            return ;
-
+            else
+            {
+                if(zahvat_fefe && zahvat_ffff)
+                {
+                    flag = true;
+                }
+                else
+                {
+                    dataBuild.clear();
+                    return ;
+                }
+            }
         }
         else
         {
-            flag = true;
+            dataBuild.clear();
+            return;
+        }
+
+//        qDebug() <<  nameMRK <<  "=================DATA==================";
+//        qDebug() << data.toHex(' ');
+//        qDebug() <<  nameMRK <<  "====================================";
+
+        char KS = data[data.count()-3];
+        char _KS = '\0';
+
+        for(int i=2; i < data.count()-3;i++)
+        {
+            _KS ^=data[i];
+        }
+
+        if(_KS == KS)
+        {
+           // qDebug() << "KS GOOD";
+            zahvat_fefe = false;
+            zahvat_ffff = false;
+        }
+        else
+        {
+          //  qDebug() << "KS Bead : " << QString::number(_KS,16).toUpper() << " ; " << QString::number(KS,16).toUpper();
+
+            data.clear();
+            dataBuild.clear();
+            zahvat_fefe = false;
+            zahvat_ffff = false;
+            return ;
+        }
+
+
+        ////////////////////////////////////
+
+
+        //qDebug() << "==============GOOD===============";
+        //qDebug() << dataBuild;
+        //qDebug() << "=======================================";
+
+
+        //КОД для того чтоб узнать название платы
+        if(nameMRK.count() == 0 && flag_getName)
+        {
+            ReadInProt_nameNP101(data);
+            dataBuild.clear();
+            return;
         }
 
 
 
-        if(flag_GetMrk_liters == true && data[4] == 0x02  && data.count() > 10  && ( data[data.count()-1] == 0xff && data[data.count()-2] == 0xff))
+        if(flag_GetMrk_liters == true && static_cast<char>(data[4]) == 0x02  && data.count() > 10  && ( data[data.count()-1] == static_cast<char>(0xff) && data[data.count()-2] == static_cast<char>(0xff)))
         {
 
-           // qDebug () << "START LITERS OT ";
+            qDebug() << "START LITERS OT ";
 
             flag_GetMrk_liters = false;
 
             QByteArray b;
 
-            if(data[11] != 0x03)
+            if(data[11] != static_cast<char>(0x03))
             {
                 data[11] = 0x03;
             }
@@ -689,8 +685,8 @@ void Port::ReadInProt() // чтение данных из порта
             data.remove(data.count()-3,3);
 
 
-            b.append(0xfe);
-            b.append(0xfe);
+            b.append(static_cast<char>(0xfe));
+            b.append(static_cast<char>(0xfe));
             b.append(0x02);
             b.append(0x15);
 
@@ -699,13 +695,10 @@ void Port::ReadInProt() // чтение данных из порта
                 b.append(data[i]);
             }
             b.append(0x01);
-            b.append(0xff);
-            b.append(0xff);
-            char c = NULL;
+            b.append(static_cast<char>(0xff));
+            b.append(static_cast<char>(0xff));
 
-            char c1 = NULL;
-
-            c1 = b[2]^b[3]^b[4];
+            char c = '\0';
 
             for(int i=2; i < b.count()-3;i++)
             {
@@ -713,9 +706,7 @@ void Port::ReadInProt() // чтение данных из порта
                 b[b.count()-3] = c;
             }
 
-            // this->WriteToPort(b);
-
-            if(b[11] == 0x03)
+            if(b[11] == static_cast<char>(0x03))
             {
                 emit writeData(b);
             }
@@ -729,27 +720,15 @@ void Port::ReadInProt() // чтение данных из порта
         else
         {
 
-
-            if(data[data.count()-1] == 0xff && data[data.count()-2] == 0xff)
+            if(data[data.count()-1] == static_cast<char>(0xff) && data[data.count()-2] == static_cast<char>(0xff))
             {
 
-                //   // qDebug() << "flag_end_MRK   << " <<  flag_end_MRK;
-
-                if(flag_end_MRK== true)
+                if(flag_end_MRK == true)
                 {
                     dataBuild.clear();
-
                     data = dataBuild;
-
-                    //                    CountFindGLONASS=0;
-                    //                    CountFindGPS=0;
-                    //                    CountFindALL=0;
-                    //                    emit UpdateCountFind(CountFindGLONASS,CountFindGPS,CountFindALL);
                     return ;
                 }
-
-                //   // qDebug() << "flag_start_MRK   << " <<  flag_start_MRK;
-                //    // qDebug() << "flag   << " <<  flag;
 
 
                 if(flag)
@@ -762,28 +741,19 @@ void Port::ReadInProt() // чтение данных из порта
                     data.remove(0,2);
 
 
-
-
-
                     //Удаляем нули которые МРК поставил для того чтобы не перепутать с 0xfe 0xfe
                     for(int i=1;  i < data.count()-1;i++)
                     {
-                        if(data[i-1] == 0xfe && data[i] == '\0')
+                        if(data[i-1] == static_cast<char>(0xfe) && data[i] == '\0')
                         {
                             data.remove(i,1); // удалит нули
-
                         }
 
-                        if(data[i-1] == 0xff && data[i] == '\0')
+                        if(data[i-1] == static_cast<char>(0xff) && data[i] == '\0')
                         {
                             data.remove(i,1); // удалит нули
-
                         }
-
                     }
-
-
-
 
                     lol.clear();
 
@@ -794,9 +764,9 @@ void Port::ReadInProt() // чтение данных из порта
 
 
 
-                    container->NkaLit[0] = data[position_liters];
-                    container->NkaNum[0] = data[position_number];
-                    container->Ka1Mode[0] = data[position_Mode];
+                    container->NkaLit[0] = static_cast<unsigned char>(data[position_liters]);
+                    container->NkaNum[0] = static_cast<unsigned char>(data[position_number]);
+                    container->Ka1Mode[0] = static_cast<unsigned char>(data[position_Mode]);
 
 
                     lol.append(data[position_A]);
@@ -810,52 +780,185 @@ void Port::ReadInProt() // чтение данных из порта
                         position_Mode += 24;
                         position_A += 24;
 
-                        container->NkaLit[i] = data[position_liters];
-                        container->NkaNum[i] = data[position_number];
-                        container->Ka1Mode[i] = data[position_Mode];
-                        // container->A1L1[i] = data[position_A];
+                        container->NkaLit[i] = static_cast<unsigned char>(data[position_liters]);
+                        container->NkaNum[i] = static_cast<unsigned char>(data[position_number]);
+                        container->Ka1Mode[i] = static_cast<unsigned char>(data[position_Mode]);
 
                         lol.append(data[position_A]);
                         lol.append(data[position_A+1]);
                     }
 
-
-
-
-                    container->A1L1 = (amplituda*)lol.data();
-
-
-
-//                    for(int i=0;  i < 24;i++) //73
-//                    {
-//                        if(container->A1L1->A1L1[i] > 300  || container->A1L1->A1L1[i] < 0)
-//                        {
-//                            // qDebug() << "ОШИБКА";
-//                        }
-
-//                    }
-
+                    container->A1L1 =  reinterpret_cast<amplituda*>(lol.data());
 
                     RazborFrame(*container);
 
-
-
-                 //   qDebug() << "dataBuild = " << dataBuild.count();
-                 //    qDebug() << "data = " << dataBuild.count();
-
-                  //  emit outMRKdata(*container);
-
                     data.clear();
-
 
                 }
                 dataBuild.clear();
             }
         }
+
+
+        ///////////////////////////
+
     }
+    else
+    {
+        dataBuild.clear();
+    }
+
+
+
+
 
 }
 
+void Port::ReadInProt_nameNP101(QByteArray _nameMRK)
+{
+    nameMRK.clear();
+
+    for(int i=0;i < _nameMRK.count();i++)
+    {
+        nameMRK.append(_nameMRK[i]);
+    }
+
+    nameMRK.remove(0,4);
+    nameMRK.remove(nameMRK.count()-3,3);
+    qDebug() << "nameMRK_String = " << nameMRK.toHex() << "nameMRK = " << nameMRK;
+
+    emit signal_MRkgetName(nameMRK);
+    flag_getName = false;
+
+
+    data.clear();
+    dataBuild.clear();
+    zahvat_fefe = false;
+    zahvat_ffff = false;
+}
+
+
+bool Port::getMessage(QByteArray _data)
+{
+    ///////////////////////////////////
+
+    int N = _data.count();
+
+
+    if(N != 1)
+    {
+        for(int i=0; i < N-1;i++)
+        {
+            // если конец и начало посылки еще не найдены
+            if(zahvat_ffff == false && zahvat_fefe == false)
+            {
+                // Поиск начала посылки
+                if(_data[i] == static_cast<char>(0xfe) && _data[i+1] == static_cast<char>(0xfe))
+                {
+                    // если начало посылки не совпадает с началом данных, то очищаем массив результатов
+                    if(i > 0 )
+                    {
+                        data.clear();
+                        dataBuild.clear();
+                        return false;
+                    }
+                    else
+                    {
+                        zahvat_fefe = true; //поймали начало посылки fefe
+                        // data.append(_data[i]); //записали fe
+                    }
+                }
+            }
+            else
+            {
+
+                // Поиск начала посылки ошибочного сообзения
+                if(_data[i] == static_cast<char>(0xfe) && _data[i+1] == static_cast<char>(0xfe))
+                {
+                    data.clear();
+                    dataBuild.clear();
+                    return false;
+                }
+                else
+                {
+                    // Поиск конца посылки
+                    if(_data[i] == static_cast<char>(0xff) && _data[i+1] == static_cast<char>(0xff))
+                    {
+
+                        if(i+1 == N-1)
+                        {
+                            zahvat_ffff = true; //поймали конец посылки ffff
+                        }
+                        else
+                        {
+                            data.clear();
+                            dataBuild.clear();
+                            return false;
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+    else
+    {
+        data.append(_data); //записали данные
+        // Поиск конца посылки
+        if(data[data.count()-1] == static_cast<char>(0xff) && data[data.count()-2] == static_cast<char>(0xff))
+        {
+            zahvat_ffff = true; //поймали конец посылки ffff
+        }
+
+        data.remove(data.count()-1,1);
+    }
+
+
+
+    if(zahvat_fefe && zahvat_ffff)
+    {
+        data.append(_data); //записали данные
+        return true;
+    }
+    else
+    {
+        data.append(_data); //записали данные
+        return false;
+    }
+}
+
+bool Port::Proverka(QByteArray _data)
+{
+    QByteArray ok;
+    ok.append(static_cast<char>(0xfe));
+    ok.append(static_cast<char>(0xfe));
+    ok.append(0x02);
+    ok.append('\0');
+    ok.append(0x02);
+    ok.append(static_cast<char>(0xff));
+    ok.append(static_cast<char>(0xff));
+
+    if(_data[3] == '\0')
+    {
+        return true; // Приемник принял данные верно
+    }
+    else
+    {
+
+        switch (_data[3]) {
+        case 0x01: emit signalErrorMessage("01h – неверный (несуществующий, неподдерживаемый) код операции.",0x01); return  false;
+        case 0x02: emit signalErrorMessage("02h – несовпадение контрольной суммы при приеме сообщения.",0x02); return false;
+        case 0x03: emit signalErrorMessage("03h – неправильная длина команды (число принятых байт не соответствует коду операции), блок <данные> содержит принятую длину.",0x03); return false;
+        case 0x04: emit signalErrorMessage("04h – запрашиваемый кадр не существует (не назначен).",0x04); return false;
+        case 0x05: emit signalErrorMessage("05h – в принятой команде (кадре) обнаружены некорректные параметры.",0x05); return false;
+        case 0x06: emit signalErrorMessage("06h – номер запрашиваемого параметра превышает допустимый для данного прибора.",0x06); return false;
+        case 0x07: emit signalErrorMessage("07h – превышение размера ответного сообщения.",0x07); return false;
+        case 0x09: emit signalErrorMessage("09h – канал занят для передачи (команды, принятые во время передачи, не обрабатываются).",0x09); return false;
+        }
+
+    }
+
+}
 
 
 void Port::RazborFrame(frameExample container)
@@ -866,10 +969,9 @@ void Port::RazborFrame(frameExample container)
     CountFindALL=0;
 
 
-
-   listSP->clear();
-   listSP_Amplitude->clear();
-   listSP_Name->clear();
+    listSP->clear();
+    listSP_Amplitude->clear();
+    listSP_Name->clear();
 
     for(int i=0; i < 24;i++)
     {
@@ -898,19 +1000,17 @@ void Port::RazborFrame(frameExample container)
             }
             else
             {
-                 listSP_Name->append("R"+QString::number(container.NkaNum[i])+"/"+QString::number(container.NkaLit[i]));
+                listSP_Name->append("R"+QString::number(container.NkaNum[i])+"/"+QString::number(container.NkaLit[i]));
             }
         }
 
-        if(container.Ka1Mode[i] == 7)
+        if(QString::number(container.Ka1Mode[i]) == "7")
         {
             CountFindALL++;
 
             if(container.NkaNum[i] > 100)
             {
                 auto positionGPS =  QString::number(container.NkaLit[i],2);
-
-
                 CountFindGPS++;
             }
             else
@@ -918,7 +1018,6 @@ void Port::RazborFrame(frameExample container)
                 if(container.NkaLit[i] < 32 && container.NkaLit[i] > 24)
                 {
                     //Преобразование отрицательной литеры
-
                     CountFindGLONASS++;
                 }
                 else
@@ -930,30 +1029,36 @@ void Port::RazborFrame(frameExample container)
         }
     }
 
-    // // qDebug() <<"listSP = " << listSP;
+    qDebug() << CountFindALL <<  " ) listSP = " << listSP->toVector();
 
-    emit signal_GoTORelizproverka(*listSP,*listSP_Amplitude,*listSP_Name);
+    if(flag_waitloadingMRK)
+    {
+        if(flag_waitloadingMRK && flag_waitloadingMRK_proverka)
+        {
+            emit signal_MRkLoadProverka(true);
+            flag_waitloadingMRK = false;
+            flag_waitloadingMRK_proverka = false;
+        }
+        else
+        {
+            emit stopTimerMrk();
+            emit signal_MRkLoad(true);
+            flag_waitloadingMRK = false;
+            flag_waitloadingMRK_proverka = false;
+        }
 
+    }
+    else
+    {
+        emit signal_GoTORelizproverka(*listSP,*listSP_Amplitude,*listSP_Name);
+        emit UpdateCountFind(CountFindGLONASS,CountFindGPS,CountFindALL);
 
-    listSP->clear();
-    listSP_Amplitude->clear();
-    listSP_Name->clear();
+    }
 
 
     data.clear();
     dataBuild.clear();
-
     lol.clear();
-
-
-    emit UpdateCountFind(CountFindGLONASS,CountFindGPS,CountFindALL);
-    //      // qDebug() <<"CountFindGLONASS = " << CountFindGLONASS;
-    //     // qDebug() <<"CountFindGPS = " <<  CountFindGPS;
-    //        // qDebug() <<"CountFindALL = " <<  CountFindALL;
-
-   // qDebug () << "Память ! = " <<sizeof(this);
-
-
 
 }
 

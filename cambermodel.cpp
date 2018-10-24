@@ -4,12 +4,6 @@ CamberModel::CamberModel(QObject *parent) : QObject(parent)
 {
     camber = new Camber();
 
-    camber->moveToThread(new QThread());
-
-    camber->thread()->start();
-
-    connect(camber->thread(),&QThread::started,camber,&Camber::prosecc);
-
 
     connect(this,&CamberModel::signal_startCamberWork,camber,&Camber::startCamberWork,Qt::QueuedConnection);
     connect(this,&CamberModel::signal_stopCamberWork,camber,&Camber::stopCamberWork,Qt::QueuedConnection);
@@ -28,8 +22,23 @@ CamberModel::CamberModel(QObject *parent) : QObject(parent)
 
 CamberModel::~CamberModel()
 {
-
+    delete camber;
 }
+
+QString &CamberModel::name()
+{
+    if(slot_TestConnect())
+    {
+        _name = "Камера PG-2J подключена";
+    }
+    else
+    {
+       _name = "Камера PG-2J Не подключена";
+    }
+
+    return _name;
+}
+
 
 void CamberModel::slot_startCamberWork()
 {
@@ -48,7 +57,7 @@ void CamberModel::slot_connectCamber(QString ip)
 
 bool CamberModel::slot_TestConnect()
 {
-    return true;//camber->flagConnect;
+    return camber->flagConnect;
 }
 
 void CamberModel::slot_StartTimer()
@@ -58,7 +67,7 @@ void CamberModel::slot_StartTimer()
 
 void CamberModel::slot_SetNY()
 {
-        emit signal_setCamberNY();
+    emit signal_setCamberNY();
 }
 
 void CamberModel::slot_SetHord()

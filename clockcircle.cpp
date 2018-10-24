@@ -12,7 +12,8 @@ ClockCircle::ClockCircle(QQuickItem *parent) :
     m_angleConst(0.06),
     m_circleTime(QTime(0,0,0,0))
 {
-    internalTimer = new QTimer(this);   // Инициализируем таймер
+    internalTimer = new QTimer();   // Инициализируем таймер
+
     /* А также подключаем сигнал от таймера к лямбда функции
      * Структура лямбда-функции [объект](аргументы){тело}
      * */
@@ -22,14 +23,44 @@ ClockCircle::ClockCircle(QQuickItem *parent) :
         update();                                   // Перерисовываем объект
     });
 
+
     //Чтоб посчитать время и установить констунту нужно
     //Если 50 милисекунд это шаг тогда в 1 секунде 20 шагов
     // в 1 минуте 20*60 и т.д
     //Разделить 360 на получившееся число и установить константу в Angle();
 }
 
+void ClockCircle::paint2()
+{
+    qDebug() << "Paint";
+    // Отрисовка объекта
+    QBrush  brush(m_backgroundColor);               // выбираем цвет фона, ...
+    QBrush  brushActive(m_borderActiveColor);       // активный цвет ободка, ...
+    QBrush  brushNonActive(m_borderNonActiveColor); // не активный цвет ободка
+
+    painterParent->setPen(Qt::NoPen);                             // Убираем абрис
+    painterParent->setRenderHints(QPainter::Antialiasing, true);  // Включаем сглаживание
+
+    painterParent->setBrush(brushNonActive);                          // Отрисовываем самый нижний фон в виде круга
+    painterParent->drawEllipse(boundingRect().adjusted(1,1,-1,-1));   // с подгонкой под текущие размеры, которые
+    // будут определяться в QML-слое.
+    // Это будет не активный фон ободка
+
+    // Прогресс бар будет формироваться с помощью отрисовки Pie графика
+    painterParent->setBrush(brushActive);                         // Отрисовываем активный фон ободка в зависимости от угла поворота
+    painterParent->drawPie(boundingRect().adjusted(1,1,-1,-1),    // с подгонкой под размеры в QML слое
+                     90*16,         // Стартовая точка
+                     m_angle*16);   // угол поворота, до которого нужно отрисовать объект
+
+    painterParent->setBrush(brush);       // основной фон таймера, перекрытием которого поверх остальных
+    painterParent->drawEllipse(boundingRect().adjusted(10,10,-10,-10));   // будет сформирован ободок (он же прогресс бар)
+}
+
+
 void ClockCircle::paint(QPainter *painter)
 {
+    painterParent = painter;
+    qDebug() << "Paint";
     // Отрисовка объекта
     QBrush  brush(m_backgroundColor);               // выбираем цвет фона, ...
     QBrush  brushActive(m_borderActiveColor);       // активный цвет ободка, ...
@@ -63,52 +94,27 @@ void ClockCircle::clear()
 
 void ClockCircle::start()
 {
+
+    qDebug() << "Start  ClockCircle";
+
     internalTimer->start(50);       // Запускаем таймер с шагом 50 мс
 
 
-    QFile file("D:\\NewProject\\CustomQuickItem\\status.html");
+//    QFile file("D:\\NewProject\\CustomQuickItem\\status.html");
 
-    file.open(QIODevice::ReadWrite);
-
-
-    QString str = file.readAll();
-     int j=0;
-    QString find;
-    QString find2;
-
-    while ((j = str.indexOf("<span id=\"program_step_remain_value\">", j)) != -1) {
-        qDebug() << "Found <span id=\"monitor-temp-pv-value\" tag at index position" << j;
-        ++j;
-
-        for(int i=36; i < 60;i++)
-        {
-            find += str[j+i];
-        }
-
-    }
+//    file.open(QIODevice::ReadWrite);
 
 
-//    j=0;
+//    QString str = file.readAll();
+//     int j=0;
+//    QString find;
+//    QString find2;
 
-
-//    while ((j = str.indexOf("<span id=\"date-value\">", j)) != -1) {
+//    while ((j = str.indexOf("<span id=\"program_step_remain_value\">", j)) != -1) {
 //        qDebug() << "Found <span id=\"monitor-temp-pv-value\" tag at index position" << j;
 //        ++j;
 
-//        for(int i=21; i < 50;i++)
-//        {
-//            find += str[j+i];
-//        }
-
-//    }
-
-//     j=0;
-
-//    while ((j = str.indexOf("<span id=\"operation-status-value\">", j)) != -1) {
-//        qDebug() << "Found <span id=\"monitor-temp-pv-value\" tag at index position" << j;
-//        ++j;
-
-//        for(int i=33; i < 100;i++)
+//        for(int i=36; i < 60;i++)
 //        {
 //            find += str[j+i];
 //        }
@@ -116,31 +122,21 @@ void ClockCircle::start()
 //    }
 
 
-//    j=0;
+//    qDebug () << find.split(QLatin1Char('<')).first();
+//    qDebug () << find2;
 
-//    while ((j = str.indexOf("<span id=\"monitor-temp-sv-value\">", j)) != -1) {
-//        qDebug() << "Found <span id=\"monitor-temp-pv-value\" tag at index position" << j;
-//        ++j;
-
-//        for(int i=32; i < 50;i++)
-//        {
-//            find2 += str[j+i];
-//        }
-
-//    }
-
-
-
-    qDebug () << find.split(QLatin1Char('<')).first();
-    qDebug () << find2;
-
-    setName(find);
+//    setName(find);
 
 }
 
 void ClockCircle::stop()
 {
     internalTimer->stop();          // Останавливаем таймер
+}
+
+void ClockCircle::slot_Finish()
+{
+    emit signal_Finish();
 }
 
 QString ClockCircle::name() const
@@ -251,5 +247,18 @@ void ClockCircle::setCircleTime(const QTime circleTime)
         return;
 
     m_circleTime = circleTime;
+
     emit circleTimeChanged(circleTime);
+
+    auto t = circleTime.toString("hh:mm:ss.zzz");
+
+    qDebug() <<t;
+
+//    if(t == "00:00:01.000")
+//    {
+//        this->stop();
+//        this->clear();
+
+//        emit signal_Finish();
+//    }
 }

@@ -19,7 +19,8 @@ class N6700Model : public QObject
 {
     Q_OBJECT
 public:
-    explicit N6700Model(QObject *parent = 0);
+    explicit N6700Model(QObject *parent = nullptr);
+     ~N6700Model();
 
     N6700* n6700;
 
@@ -62,6 +63,10 @@ public slots:
     void slot_getMeasureCURRentSignal(QVector<QString>);
     void slot_getMeasureVoltSignal(QVector<QString>);
     void slot_StopTimer();
+
+
+    //get variable
+    bool getConnect();
 
 
 };

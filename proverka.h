@@ -12,8 +12,6 @@
 #include <bdata.h>
 
 
-#include <screencapture.h>
-
 #include <cambermodel.h>
 
 class Proverka : public QObject
@@ -21,10 +19,8 @@ class Proverka : public QObject
    Q_OBJECT
 
 public:
-   explicit  Proverka(CamberModel* camberGet,gsgModel* gsg,N6700Model* n6700,PortModel* port,PortModel* port2,PortModel* port3,PortModel* port4,PortModel* port5,PortModel* port6,PortModel* port7,PortModel* port8,screenCapture *screenClassGet,QObject *parent = 0);
-
-
-    screenCapture* screenClass;
+    explicit  Proverka(CamberModel* camberGet,gsgModel* gsg,N6700Model* n6700,N6700Model* n6700Get_2,PortModel* port,PortModel* port2,PortModel* port3,PortModel* port4,PortModel* port5,PortModel* port6,PortModel* port7,PortModel* port8,QObject *parent = nullptr);
+    int Count_NP;
 
     int kol_Auto_Start;
     int kol_cignalov; //переменная для 5 проверки для старта имитатора - генератора (подсчет сигналов на включение)
@@ -44,6 +40,7 @@ public:
 
     gsgModel* gsg;
     N6700Model* n6700;
+    N6700Model* n6700_2;
 
     PortModel* port;
     PortModel* port2;
@@ -70,7 +67,7 @@ public:
 
 
     void Set_Number_Spytnik(proverkaItem*);
-
+    int kolStart;
 
     BData* BD;
 
@@ -118,12 +115,38 @@ public:
 
     void endOneProverka();
 
+    QSemaphore sem;
+
 signals:
+
+    void signal_StartProverka_OS_1();
+    void signal_StartProverka_OS_2();
+    void signal_StartProverka_OS_3();
+    void signal_StartProverka_OS_4();
+    void signal_StartProverka_OS_5();
+    void signal_StartProverka_OS_6();
+    void signal_StartProverka_OS_7();
+    void signal_StartProverka_OS_8();
+
+    void signal_StartProverka_BeforeClearTP();
+
+
     void ListProverkaChanged(QList<QObject*>);
 
     void signal_StartProverka(bool auto_test, int proverka);
     void signal_StartProverka_2();
     void signal_StartProverka_5();
+
+    //////////////
+    void signal_StartProverka_5_proverka1();
+    void signal_StartProverka_5_proverka2();
+    void signal_StartProverka_5_proverka3();
+    void signal_StartProverka_5_proverka4();
+    void signal_StartProverka_5_proverka5();
+    void signal_StartProverka_5_proverka6();
+    void signal_StartProverka_5_proverka7();
+    void signal_StartProverka_5_proverka8();
+    /// //
 
     void signal_StartGSG();
     void setSIGNALtype(QString);
@@ -170,6 +193,15 @@ signals:
 
     void signal_stopCamberWorkProverka();
 
+    //Сигнал в MainWindow Для открытие окна проверок
+    void signalOnMainWindow_OpenWindowWork();
+
+    void signalOnMainWindow_finish();
+
+    //На пульт
+    void signal_slot_comand6_Connect_Vx2_10_ext();
+    void signal_slot_comand7_Set_zatyxanie_10(char);
+    void signal_slot_comand5_Connect_10MG(char,bool);
 
 
 public slots:
@@ -197,6 +229,10 @@ public slots:
 
     void slot_start_Imitator();
 
+
+    void slot_start_10Proverka_OS(int index);
+
+
     //Слот для остановки переключения проверки
 
     void slot_next();
@@ -204,10 +240,24 @@ public slots:
     void setModeStart(const QString & modeStart);
     void setfioStart(const QString & fioStart);
 
+    void slot_onMainWindowFinish();
+
+    void process_start();
+
+    void slot_StartProverka_Os(int index);
+
+    void slot_Tp_Clear();
+
+    void slot_StartProverka_Os_begin(int index);
+    void slot_StartProverka_Os_end(int index);
+
 
 
 public:
   QList<QObject*>* m_ListProverkaItem;
+
+
+  QStringList list_CountNP;
 
   //ФИО
   QString m_fioStart;

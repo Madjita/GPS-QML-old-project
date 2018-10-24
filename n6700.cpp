@@ -1,11 +1,10 @@
 #include "n6700.h"
 
-#include <windows.h>
 #include <QDateTime>
 
-#include "N6700.h"
 #include <QDateTime>
 
+#define errorMeasure 0//0.035
 
 N6700::N6700(QObject *parent) : QObject(parent),
     flag_work(false)
@@ -13,14 +12,30 @@ N6700::N6700(QObject *parent) : QObject(parent),
 {
 
     this->moveToThread(new QThread()); //Переместили класс N6700 в новый поток
-    qDebug () << "Помещаем класс  << N6700 >> в поток: " << this->thread();
-
     QObject::connect(this->thread(),&QThread::started,this,&N6700::process_start);
+    connect(this,&N6700::signal_finished, this->thread(), &QThread::quit);
     this->thread()->start();
-    qDebug () << "Запускаем поток << N6700 >> : " << this->thread();
+
 
     qRegisterMetaType<QVector<QString>>();
 
+}
+
+N6700::~N6700()
+{
+    if(connected)
+    {
+        setOutput("all",false);
+        viClose(vi);
+    }
+
+    if(timer_IstP1_Measure->isActive())
+        emit TimerStop();
+
+
+    delete timer_IstP1_Measure;
+
+    emit signal_finished();
 }
 
 
@@ -29,9 +44,6 @@ void N6700::process_start()
     connected = false;
 
     //Инициализация таймеров
-    QTime midnight(0,0,0);
-    qsrand(midnight.secsTo(QTime::currentTime()));
-
     timer_IstP1_Measure = new QTimer();
 
     QObject::connect(timer_IstP1_Measure,&QTimer::timeout,this,&N6700::Work);
@@ -44,18 +56,8 @@ void N6700::process_start()
 
 void N6700::slot_StartTimer()
 {
-//    if(timer_IstP1_Measure->isActive())
-//    {
-//        qDebug () << "Уже запущен таймер источника мпитания";
-//    }
-//    else
-//    {
-        emit startTimer(1000);
-        flag_work = true;
-
-        qDebug () << "Hellow";
-  //  }
-
+    emit startTimer(1000);
+    flag_work = true;
 }
 
 
@@ -67,7 +69,7 @@ bool N6700::Connect(QString ip)
 
     QString str  = "TCPIP0::"+ip+"::inst0::INSTR";
 
-    viStatus=viOpen(defaultRM, (ViRsrc)qPrintable("TCPIP0::"+ip+"::inst0::INSTR"), VI_NULL, VI_NULL,&vi); // проверено - работает через IP
+    viStatus=viOpen(defaultRM,   const_cast<ViRsrc>(qPrintable("TCPIP0::"+ip+"::inst0::INSTR")), VI_NULL, VI_NULL,&vi); // проверено - работает через IP
 
     if(viStatus<VI_SUCCESS)
     {
@@ -110,7 +112,7 @@ void N6700::startProverka()
 
         timer_IstP1_Measure->start(1000);
 
-        setVolt("all","1");
+        setVolt("all","5");
         setOutput("all",true);
     }
 }
@@ -136,27 +138,29 @@ void N6700::getName()
 {
     char nameChar[100];
 
-    viQueryf(vi,"*IDN?\t\n","%T",nameChar);
+    viQueryf(vi,const_cast<ViString>("*IDN?\t\n"),const_cast<ViString>("%T"),nameChar);
 
     name = qPrintable(nameChar);
 }
 
 void N6700::setOutput(QString canal, bool OnOff)
 {
+    mut.lock();
+
     if(canal =="ALL" || canal =="all")
     {
-        switch (OnOff) {
+        switch (static_cast<int>(OnOff)) {
         case true:
-            viPrintf(vi, "OUTPut:STATe 1,(@1)\r\n");
-            viPrintf(vi, "OUTPut:STATe 1,(@2)\r\n");
-            viPrintf(vi, "OUTPut:STATe 1,(@3)\r\n");
-            viPrintf(vi, "OUTPut:STATe 1,(@4)\r\n");
+            viPrintf(vi, const_cast<ViString>("OUTPut:STATe 1,(@1)\r\n"));
+            viPrintf(vi, const_cast<ViString>("OUTPut:STATe 1,(@2)\r\n"));
+            viPrintf(vi, const_cast<ViString>("OUTPut:STATe 1,(@3)\r\n"));
+            viPrintf(vi, const_cast<ViString>("OUTPut:STATe 1,(@4)\r\n"));
             break;
         case false:
-            viPrintf(vi, "OUTPut:STATe 0,(@1)\r\n");
-            viPrintf(vi, "OUTPut:STATe 0,(@2)\r\n");
-            viPrintf(vi, "OUTPut:STATe 0,(@3)\r\n");
-            viPrintf(vi, "OUTPut:STATe 0,(@4)\r\n");
+            viPrintf(vi, const_cast<ViString>("OUTPut:STATe 0,(@1)\r\n"));
+            viPrintf(vi, const_cast<ViString>("OUTPut:STATe 0,(@2)\r\n"));
+            viPrintf(vi, const_cast<ViString>("OUTPut:STATe 0,(@3)\r\n"));
+            viPrintf(vi, const_cast<ViString>("OUTPut:STATe 0,(@4)\r\n"));
             break;
         }
 
@@ -178,12 +182,12 @@ void N6700::setOutput(QString canal, bool OnOff)
         {
         case 1:
         {
-            switch (OnOff) {
+            switch (static_cast<int>(OnOff)) {
             case true:
-                viPrintf(vi, "OUTPut:STATe 1,(@1)\r\n");
+                viPrintf(vi, const_cast<ViString>("OUTPut:STATe 1,(@1)\r\n"));
                 break;
             case false:
-                viPrintf(vi, "OUTPut:STATe 0,(@1)\r\n");
+                viPrintf(vi, const_cast<ViString>("OUTPut:STATe 0,(@1)\r\n"));
                 break;
             }
 
@@ -199,12 +203,12 @@ void N6700::setOutput(QString canal, bool OnOff)
         }
         case 2:
         {
-            switch (OnOff) {
+            switch (static_cast<int>(OnOff)) {
             case true:
-                viPrintf(vi, "OUTPut:STATe 1,(@2)\r\n");
+                viPrintf(vi, const_cast<ViString>("OUTPut:STATe 1,(@2)\r\n"));
                 break;
             case false:
-                viPrintf(vi, "OUTPut:STATe 0,(@2)\r\n");
+                viPrintf(vi, const_cast<ViString>("OUTPut:STATe 0,(@2)\r\n"));
                 break;
             }
 
@@ -220,12 +224,12 @@ void N6700::setOutput(QString canal, bool OnOff)
         }
         case 3:
         {
-            switch (OnOff) {
+            switch (static_cast<int>(OnOff)) {
             case true:
-                viPrintf(vi, "OUTPut:STATe 1,(@3)\r\n");
+                viPrintf(vi, const_cast<ViString>("OUTPut:STATe 1,(@3)\r\n"));
                 break;
             case false:
-                viPrintf(vi, "OUTPut:STATe 0,(@3)\r\n");
+                viPrintf(vi, const_cast<ViString>("OUTPut:STATe 0,(@3)\r\n"));
                 break;
             }
 
@@ -241,12 +245,12 @@ void N6700::setOutput(QString canal, bool OnOff)
         }
         case 4:
         {
-            switch (OnOff) {
+            switch (static_cast<int>(OnOff)) {
             case true:
-                viPrintf(vi, "OUTPut:STATe 1,(@4)\r\n");
+                viPrintf(vi, const_cast<ViString>("OUTPut:STATe 1,(@4)\r\n"));
                 break;
             case false:
-                viPrintf(vi, "OUTPut:STATe 0,(@4)\r\n");
+                viPrintf(vi, const_cast<ViString>("OUTPut:STATe 0,(@4)\r\n"));
                 break;
             }
 
@@ -262,6 +266,8 @@ void N6700::setOutput(QString canal, bool OnOff)
         }
         }
     }
+
+    mut.unlock();
 }
 
 
@@ -269,10 +275,10 @@ void N6700::setVolt(QString canal, QString V)
 {
     if(canal =="ALL" || canal =="all")
     {
-        viPrintf(vi, "VOLTage:LEVel %s,(@1)\r\n",qPrintable(V));
-        viPrintf(vi, "VOLTage:LEVel %s,(@2)\r\n",qPrintable(V));
-        viPrintf(vi, "VOLTage:LEVel %s,(@3)\r\n",qPrintable(V));
-        viPrintf(vi, "VOLTage:LEVel %s,(@4)\r\n",qPrintable(V));
+        viPrintf(vi, const_cast<ViString>("VOLTage:LEVel %s,(@1)\r\n"),qPrintable(V));
+        viPrintf(vi, const_cast<ViString>("VOLTage:LEVel %s,(@2)\r\n"),qPrintable(V));
+        viPrintf(vi, const_cast<ViString>("VOLTage:LEVel %s,(@3)\r\n"),qPrintable(V));
+        viPrintf(vi, const_cast<ViString>("VOLTage:LEVel %s,(@4)\r\n"),qPrintable(V));
 
         //        // Check errors
         //        char* buff = new char();
@@ -289,7 +295,7 @@ void N6700::setVolt(QString canal, QString V)
         {
         case 1:
         {
-            viPrintf(vi, "VOLTage:LEVel %s,(@1)\r\n",qPrintable(V));
+            viPrintf(vi, const_cast<ViString>("VOLTage:LEVel %s,(@1)\r\n"),qPrintable(V));
 
             //            // Check errors
             //            char* buff = new char();
@@ -302,7 +308,7 @@ void N6700::setVolt(QString canal, QString V)
         }
         case 2:
         {
-            viPrintf(vi, "VOLTage:LEVel %s,(@2)\r\n",qPrintable(V));
+            viPrintf(vi, const_cast<ViString>("VOLTage:LEVel %s,(@2)\r\n"),qPrintable(V));
 
             //            // Check errors
             //            char* buff = new char();
@@ -315,7 +321,7 @@ void N6700::setVolt(QString canal, QString V)
         }
         case 3:
         {
-            viPrintf(vi, "VOLTage:LEVel %s,(@3)\r\n",qPrintable(V));
+            viPrintf(vi, const_cast<ViString>("VOLTage:LEVel %s,(@3)\r\n"),qPrintable(V));
 
             //            // Check errors
             //            char* buff = new char();
@@ -328,7 +334,7 @@ void N6700::setVolt(QString canal, QString V)
         }
         case 4:
         {
-            viPrintf(vi, "VOLTage:LEVel %s,(@4)\r\n",qPrintable(V));
+            viPrintf(vi, const_cast<ViString>("VOLTage:LEVel %s,(@4)\r\n"),qPrintable(V));
 
             //            // Check errors
             //            char* buff = new char();
@@ -347,10 +353,10 @@ void N6700::setCurrent(QString canal, QString I)
 {
     if(canal =="ALL" || canal =="all")
     {
-        viPrintf(vi, "CURRent:LEVel %s,(@1)\r\n",qPrintable(I));
-        viPrintf(vi, "CURRent:LEVel %s,(@2)\r\n",qPrintable(I));
-        viPrintf(vi, "CURRent:LEVel %s,(@3)\r\n",qPrintable(I));
-        viPrintf(vi, "CURRent:LEVel %s,(@4)\r\n",qPrintable(I));
+        viPrintf(vi, const_cast<ViString>("CURRent:LEVel %s,(@1)\r\n"),qPrintable(I));
+        viPrintf(vi, const_cast<ViString>("CURRent:LEVel %s,(@2)\r\n"),qPrintable(I));
+        viPrintf(vi, const_cast<ViString>("CURRent:LEVel %s,(@3)\r\n"),qPrintable(I));
+        viPrintf(vi, const_cast<ViString>("CURRent:LEVel %s,(@4)\r\n"),qPrintable(I));
 
         //        // Check errors
         //        char* buff = new char();
@@ -367,7 +373,7 @@ void N6700::setCurrent(QString canal, QString I)
         {
         case 1:
         {
-            viPrintf(vi, "CURRent:LEVel %s,(@1)\r\n",qPrintable(I));
+            viPrintf(vi, const_cast<ViString>("CURRent:LEVel %s,(@1)\r\n"),qPrintable(I));
 
             //            // Check errors
             //            char* buff = new char();
@@ -380,7 +386,7 @@ void N6700::setCurrent(QString canal, QString I)
         }
         case 2:
         {
-            viPrintf(vi, "CURRent:LEVel %s,(@2)\r\n",qPrintable(I));
+            viPrintf(vi, const_cast<ViString>("CURRent:LEVel %s,(@2)\r\n"),qPrintable(I));
 
             //            // Check errors
             //            char* buff = new char();
@@ -393,7 +399,7 @@ void N6700::setCurrent(QString canal, QString I)
         }
         case 3:
         {
-            viPrintf(vi, "CURRent:LEVel %s,(@3)\r\n",qPrintable(I));
+            viPrintf(vi, const_cast<ViString>("CURRent:LEVel %s,(@3)\r\n"),qPrintable(I));
 
             //            // Check errors
             //            char* buff = new char();
@@ -406,7 +412,7 @@ void N6700::setCurrent(QString canal, QString I)
         }
         case 4:
         {
-            viPrintf(vi, "CURRent:LEVel %s,(@4)\r\n",qPrintable(I));
+            viPrintf(vi, const_cast<ViString>("CURRent:LEVel %s,(@4)\r\n"),qPrintable(I));
 
             //            // Check errors
             //            char* buff = new char();
@@ -429,36 +435,36 @@ QString N6700::getOutput(QString canal)
     switch (canal.toInt())
     {
     case 1:
-        {
-            viQueryf(vi,"OUTPut:STATe? (@1)\t\n","%T",Char);
-            break;
-        }
-    case 2:
-        {
-            viQueryf(vi,"OUTPut:STATe? (@2)\t\n","%T",Char);
-            break;
-        }
-    case 3:
-        {
-            viQueryf(vi,"OUTPut:STATe? (@3)\t\n","%T",Char);
-            break;
-        }
-    case 4:
-        {
-            viQueryf(vi,"OUTPut:STATe? (@4)\t\n","%T",Char);
-            break;
-        }
+    {
+        viQueryf(vi,const_cast<ViString>("OUTPut:STATe? (@1)\t\n"),const_cast<ViString>("%T"),Char);
+        break;
     }
-     return qPrintable(Char);
+    case 2:
+    {
+        viQueryf(vi,const_cast<ViString>("OUTPut:STATe? (@2)\t\n"),const_cast<ViString>("%T"),Char);
+        break;
+    }
+    case 3:
+    {
+        viQueryf(vi,const_cast<ViString>("OUTPut:STATe? (@3)\t\n"),const_cast<ViString>("%T"),Char);
+        break;
+    }
+    case 4:
+    {
+        viQueryf(vi,const_cast<ViString>("OUTPut:STATe? (@4)\t\n"),const_cast<ViString>("%T"),Char);
+        break;
+    }
+    }
+    return qPrintable(Char);
 }
 
 
-char buffEror[100];
+
 
 QString N6700::getEror()
 {
     // Check errors
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buffEror);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buffEror);
 
     if(QString(buffEror) == "0,\"No error\"\n")
     {
@@ -479,22 +485,22 @@ QVector<QString> N6700::getSetVolt(QString canal)
 
     if(canal =="ALL" || canal =="all")
     {
-        viQueryf(vi,"VOLTage:LEVel? (@1)\t\n","%T",Char);
+        viQueryf(vi,const_cast<ViString>("VOLTage:LEVel? (@1)\t\n"),const_cast<ViString>("%T"),Char);
         getEror();
         vector.append(qPrintable(Char));
-        Char[100] = NULL;
-        viQueryf(vi,"VOLTage:LEVel? (@2)\t\n","%T",Char);
+        memset (Char, 0, sizeof(Char));
+        viQueryf(vi,const_cast<ViString>("VOLTage:LEVel? (@2)\t\n"),const_cast<ViString>("%T"),Char);
         getEror();
         vector.append(qPrintable(Char));
-        Char[100] = NULL;
-        viQueryf(vi,"VOLTage:LEVel? (@3)\t\n","%T",Char);
+        memset (Char, 0, sizeof(Char));
+        viQueryf(vi,const_cast<ViString>("VOLTage:LEVel? (@3)\t\n"),const_cast<ViString>("%T"),Char);
         getEror();
         vector.append(qPrintable(Char));
-        Char[100] = NULL;
-        viQueryf(vi,"VOLTage:LEVel? (@4)\t\n","%T",Char);
+        memset (Char, 0, sizeof(Char));
+        viQueryf(vi,const_cast<ViString>("VOLTage:LEVel? (@4)\t\n"),const_cast<ViString>("%T"),Char);
         getEror();
         vector.append(qPrintable(Char));
-        Char[100] = NULL;
+        memset (Char, 0, sizeof(Char));
 
         return vector;
     }
@@ -504,43 +510,43 @@ QVector<QString> N6700::getSetVolt(QString canal)
         {
         case 1:
         {
-            viQueryf(vi,"VOLTage:LEVel? (@1)\t\n","%T",Char);
+            viQueryf(vi,const_cast<ViString>("VOLTage:LEVel? (@1)\t\n"),const_cast<ViString>("%T"),Char);
             getEror();
             vector.append(qPrintable(Char));
-            vector.append(NULL);
-            vector.append(NULL);
-            vector.append(NULL);
-            Char[100] = NULL;
+            vector.append(nullptr);
+            vector.append(nullptr);
+            vector.append(nullptr);
+            memset (Char, 0, sizeof(Char));
         }
         case 2:
         {
-            viQueryf(vi,"VOLTage:LEVel? (@2)\t\n","%T",Char);
+            viQueryf(vi,const_cast<ViString>("VOLTage:LEVel? (@2)\t\n"),const_cast<ViString>("%T"),Char);
             getEror();
-            vector.append(NULL);
+            vector.append(nullptr);
             vector.append(qPrintable(Char));
-            vector.append(NULL);
-            vector.append(NULL);
-            Char[100] = NULL;
+            vector.append(nullptr);
+            vector.append(nullptr);
+            memset (Char, 0, sizeof(Char));
         }
         case 3:
         {
-            viQueryf(vi,"VOLTage:LEVel? (@3)\t\n","%T",Char);
+            viQueryf(vi,const_cast<ViString>("VOLTage:LEVel? (@3)\t\n"),const_cast<ViString>("%T"),Char);
             getEror();
-            vector.append(NULL);
-            vector.append(NULL);
+            vector.append(nullptr);
+            vector.append(nullptr);
             vector.append(qPrintable(Char));
-            vector.append(NULL);
-            Char[100] = NULL;
+            vector.append(nullptr);
+            memset (Char, 0, sizeof(Char));
         }
         case 4:
         {
-            viQueryf(vi,"VOLTage:LEVel? (@4)\t\n","%T",Char);
+            viQueryf(vi,const_cast<ViString>("VOLTage:LEVel? (@4)\t\n"),const_cast<ViString>("%T"),Char);
             getEror();
-            vector.append(NULL);
-            vector.append(NULL);
-            vector.append(NULL);
+            vector.append(nullptr);
+            vector.append(nullptr);
+            vector.append(nullptr);
             vector.append(qPrintable(Char));
-            Char[100] = NULL;
+            memset (Char, 0, sizeof(Char));
         }
         }
     }
@@ -561,12 +567,13 @@ void N6700::Work()
 {
 
     getMeasureCURRentALL();
+
     getMeasureVoltALL();
 
 }
 
 
-QVector<QString> VectorMeasureVoltALL;
+
 
 
 
@@ -576,32 +583,46 @@ void N6700::getMeasureVoltALL()
 
     VectorMeasureVoltALL.clear();
 
-    viQueryf(vi, "MEASure:VOLTage? (@1)\n","%T",MeasureVoltALL);
+    viQueryf(vi, const_cast<ViString>("MEASure:VOLTage? (@1)\n"),const_cast<ViString>("%T"),MeasureVoltALL);
     getEror();
     VectorMeasureVoltALL.append(qPrintable(MeasureVoltALL));
-    MeasureVoltALL[100] = NULL;
-    viQueryf(vi,"MEASure:VOLTage? (@2)\t\n","%T",MeasureVoltALL);
+    memset (MeasureVoltALL, 0, sizeof(MeasureVoltALL));
+    viQueryf(vi,const_cast<ViString>("MEASure:VOLTage? (@2)\t\n"),const_cast<ViString>("%T"),MeasureVoltALL);
     getEror();
     VectorMeasureVoltALL.append(qPrintable(MeasureVoltALL));
-    MeasureVoltALL[100] = NULL;
-    viQueryf(vi,"MEASure:VOLTage? (@3)\t\n","%T",MeasureVoltALL);
+    memset (MeasureVoltALL, 0, sizeof(MeasureVoltALL));
+    viQueryf(vi,const_cast<ViString>("MEASure:VOLTage? (@3)\t\n"),const_cast<ViString>("%T"),MeasureVoltALL);
     getEror();
     VectorMeasureVoltALL.append(qPrintable(MeasureVoltALL));
-    MeasureVoltALL[100] = NULL;
-    viQueryf(vi,"MEASure:VOLTage? (@4)\t\n","%T",MeasureVoltALL);
+    memset (MeasureVoltALL, 0, sizeof(MeasureVoltALL));
+    viQueryf(vi,const_cast<ViString>("MEASure:VOLTage? (@4)\t\n"),const_cast<ViString>("%T"),MeasureVoltALL);
     getEror();
     VectorMeasureVoltALL.append(qPrintable(MeasureVoltALL));
 
-    MeasureVoltALL[100] = NULL;
+    memset (MeasureVoltALL, 0, sizeof(MeasureVoltALL));
 
     //qDebug () << VectorMeasureVoltALL;
+
+
+    v_1 = QString::number(VectorMeasureVoltALL[0].split("\n").first().toDouble()-
+            errorMeasure,'\0',3);
+    v_2 = QString::number(VectorMeasureVoltALL[1].split("\n").first().toDouble()-errorMeasure,'\0',3);
+    v_3 = QString::number(VectorMeasureVoltALL[2].split("\n").first().toDouble()-errorMeasure,'\0',3);
+    v_4 = QString::number(VectorMeasureVoltALL[3].split("\n").first().toDouble()-errorMeasure,'\0',3);
+
+//    qDebug() <<VectorMeasureVoltALL[0].split("\n").first() << "D = " << VectorMeasureVoltALL[0].split("\n").first().toDouble();
+//    qDebug() <<VectorMeasureVoltALL[1].split("\n").first()<< "D = " << VectorMeasureVoltALL[1].split("\n").first().toDouble();
+//    qDebug() <<VectorMeasureVoltALL[2].split("\n").first()<< "D = " << VectorMeasureVoltALL[2].split("\n").first().toDouble();
+//    qDebug() <<VectorMeasureVoltALL[3].split("\n").first()<< "D = " << VectorMeasureVoltALL[3].split("\n").first().toDouble();
+
+
 
     emit getMeasureVoltSignal(VectorMeasureVoltALL);
 
 
 }
 
-QVector<QString> VectorMeasureCURRentALL;
+
 
 
 void N6700::getMeasureCURRentALL()
@@ -610,28 +631,72 @@ void N6700::getMeasureCURRentALL()
 
     VectorMeasureCURRentALL.clear();
 
-    viQueryf(vi, "MEASure:CURRent? (@1)\n","%T",MeasureCURRentALL);
+    viQueryf(vi, const_cast<ViString>("MEASure:CURRent? (@1)\n"),const_cast<ViString>("%T"),MeasureCURRentALL);
     getEror();
     VectorMeasureCURRentALL.append(qPrintable(MeasureCURRentALL));
-    MeasureCURRentALL[100] = NULL;
-    viQueryf(vi,"MEASure:CURRent? (@2)\t\n","%T",MeasureCURRentALL);
+    memset (MeasureCURRentALL, 0, sizeof(MeasureCURRentALL));
+    viQueryf(vi,const_cast<ViString>("MEASure:CURRent? (@2)\t\n"),const_cast<ViString>("%T"),MeasureCURRentALL);
     getEror();
     VectorMeasureCURRentALL.append(qPrintable(MeasureCURRentALL));
-    MeasureCURRentALL[100] = NULL;
-    viQueryf(vi,"MEASure:CURRent? (@3)\t\n","%T",MeasureCURRentALL);
+    memset (MeasureCURRentALL, 0, sizeof(MeasureCURRentALL));
+    viQueryf(vi,const_cast<ViString>("MEASure:CURRent? (@3)\t\n"),const_cast<ViString>("%T"),MeasureCURRentALL);
     getEror();
     VectorMeasureCURRentALL.append(qPrintable(MeasureCURRentALL));
-    MeasureCURRentALL[100] = NULL;
-    viQueryf(vi,"MEASure:CURRent? (@4)\t\n","%T",MeasureCURRentALL);
+    memset (MeasureCURRentALL, 0, sizeof(MeasureCURRentALL));
+    viQueryf(vi,const_cast<ViString>("MEASure:CURRent? (@4)\t\n"),const_cast<ViString>("%T"),MeasureCURRentALL);
     getEror();
     VectorMeasureCURRentALL.append(qPrintable(MeasureCURRentALL));
 
-    MeasureCURRentALL[100] = NULL;
+    memset (MeasureCURRentALL, 0, sizeof(MeasureCURRentALL));
+
+
+    i_1 = QString::number(VectorMeasureCURRentALL[0].split("\n").first().toDouble(),'\0',3);
+    i_2 = QString::number(VectorMeasureCURRentALL[1].split("\n").first().toDouble(),'\0',3);
+    i_3 = QString::number(VectorMeasureCURRentALL[2].split("\n").first().toDouble(),'\0',3);
+    i_4 = QString::number(VectorMeasureCURRentALL[3].split("\n").first().toDouble(),'\0',3);
 
 
     emit getMeasureCURRentSignal(VectorMeasureCURRentALL);
 
-  //  qDebug() << VectorMeasureCURRentALL;
+
+}
+
+QVector<QString> N6700::getMeasureCURRentALL_find()
+{
+    mut.lock();
+
+    char MeasureCURRentALL[100];
+
+    VectorMeasureCURRentALL.clear();
+
+    viQueryf(vi, const_cast<ViString>("MEASure:CURRent? (@1)\n"),const_cast<ViString>("%T"),MeasureCURRentALL);
+    //getEror();
+    VectorMeasureCURRentALL.append(qPrintable(MeasureCURRentALL));
+    memset (MeasureCURRentALL, 0, sizeof(MeasureCURRentALL));
+    viQueryf(vi,const_cast<ViString>("MEASure:CURRent? (@2)\t\n"),const_cast<ViString>("%T"),MeasureCURRentALL);
+    // getEror();
+    VectorMeasureCURRentALL.append(qPrintable(MeasureCURRentALL));
+    memset (MeasureCURRentALL, 0, sizeof(MeasureCURRentALL));
+    viQueryf(vi,const_cast<ViString>("MEASure:CURRent? (@3)\t\n"),const_cast<ViString>("%T"),MeasureCURRentALL);
+    // getEror();
+    VectorMeasureCURRentALL.append(qPrintable(MeasureCURRentALL));
+    memset (MeasureCURRentALL, 0, sizeof(MeasureCURRentALL));
+    viQueryf(vi,const_cast<ViString>("MEASure:CURRent? (@4)\t\n"),const_cast<ViString>("%T"),MeasureCURRentALL);
+    // getEror();
+    VectorMeasureCURRentALL.append(qPrintable(MeasureCURRentALL));
+
+    memset (MeasureCURRentALL, 0, sizeof(MeasureCURRentALL));
+
+
+    i_1 = QString::number(VectorMeasureCURRentALL[0].split("\n").first().toDouble(),'\0',3);
+    i_2 = QString::number(VectorMeasureCURRentALL[1].split("\n").first().toDouble(),'\0',3);
+    i_3 = QString::number(VectorMeasureCURRentALL[2].split("\n").first().toDouble(),'\0',3);
+    i_4 = QString::number(VectorMeasureCURRentALL[3].split("\n").first().toDouble(),'\0',3);
+
+    mut.unlock();
+
+    return VectorMeasureCURRentALL;
+
 
 }
 
@@ -643,22 +708,22 @@ QVector<QString> N6700::getMeasureVolt(QString canal)
 
     if(canal =="ALL" || canal =="all")
     {
-        viQueryf(vi,"MEASure:VOLTage? (@1)\t\n","%T",Char);
+        viQueryf(vi,const_cast<ViString>("MEASure:VOLTage? (@1)\t\n"),const_cast<ViString>("%T"),Char);
         getEror();
         vector.append(qPrintable(Char));
-        Char[100] = NULL;
-        viQueryf(vi,"MEASure:VOLTage? (@2)\t\n","%T",Char);
+        memset (Char, 0, sizeof(Char));
+        viQueryf(vi,const_cast<ViString>("MEASure:VOLTage? (@2)\t\n"),const_cast<ViString>("%T"),Char);
         getEror();
         vector.append(qPrintable(Char));
-        Char[100] = NULL;
-        viQueryf(vi,"MEASure:VOLTage? (@3)\t\n","%T",Char);
+        memset (Char, 0, sizeof(Char));
+        viQueryf(vi,const_cast<ViString>("MEASure:VOLTage? (@3)\t\n"),const_cast<ViString>("%T"),Char);
         getEror();
         vector.append(qPrintable(Char));
-        Char[100] = NULL;
-        viQueryf(vi,"MEASure:VOLTage? (@4)\t\n","%T",Char);
+        memset (Char, 0, sizeof(Char));
+        viQueryf(vi,const_cast<ViString>("MEASure:VOLTage? (@4)\t\n"),const_cast<ViString>("%T"),Char);
         getEror();
         vector.append(qPrintable(Char));
-        Char[100] = NULL;
+        memset (Char, 0, sizeof(Char));
 
         return vector;
     }

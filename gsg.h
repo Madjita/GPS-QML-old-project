@@ -11,19 +11,6 @@
 
 #include <QThread>
 
-
-
-//struct Mode
-//{
-//    QString manufacturer;
-//    QString model;
-//    QString serialNumber;
-//    QString firmwareLevel;
-//    QString options;
-//};
-
-
-
 class GSG : public QObject
 {
     Q_OBJECT
@@ -44,17 +31,15 @@ public:
     QString NewDataSpytnikID;
     //Таймеры
     QTimer* timer_Imitator_Data;
+    QTimer* timer_Imitator_DataGEN;
 
     QString ManufacturerDefault;
 
     //Mode mode;
 
-    explicit GSG(QObject *parent = 0);
+    explicit GSG(QObject *parent = nullptr);
 
-    ~GSG()
-    {
-        viClose(vi);
-    }
+    ~GSG();
 
     bool flag_work;
 
@@ -66,6 +51,7 @@ public slots:
     bool connectDevice(QString ip);
     void DisConnect();
     void Work();
+    void WorkGen();
     void endWork();
 
 
@@ -78,15 +64,19 @@ public slots:
     void setGenCONTrol(QString command);
     void setGenSATid(QString Np_liter);
     void setGenSIGNALtype(QString type_signal);
+    void setGenREFPOWer(int power);
+
     void setPOWer(int id,int power,QString freqband);
     void setPOWer(QString id,int power,QString freqband);
     void setPOWerALL(int power,QString freqband);
+    void setPPSOUTput(int on);
 
 
     //Функции для считывания параметров
     void getName();
 
     QString getCONTrol();
+    QString getGenCONTrol();
     QString getSIGNALtype();
     QString getSIGNALtype(QString id);
     QString getSATid(int n);
@@ -100,6 +90,7 @@ public slots:
     QString getPosition();
 
     QString getNumberIDSpytnik();
+    QString getGenSATid();
 
     void slot_StartTimer();
 
@@ -108,7 +99,6 @@ public slots:
 
 signals:
     void UpdateScenDataTime(QString);
-    void TimerStop();
     void UpdateScenNumberIDSpytnik(QString);
     void UpdateScenPow(QString);
     void connectOk();
@@ -121,8 +111,14 @@ signals:
     void signal_getSVmodel(QString);
 
     void startTimer(int);
+    void TimerStop();
+
+    void startTimerGen(int);
+    void TimerStopGen();
 
     void signal_QMLStart();
+
+    void signal_finished();
 
 
 };

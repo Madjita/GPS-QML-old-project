@@ -1,177 +1,97 @@
 //#include <QGuiApplication>
+
 #include <QQmlApplicationEngine>
+
+
+#include <QQuickWindow>
+
 #include <QQmlContext>
 #include <QApplication>
+
 
 #include <gsgmodel.h>
 #include <n6700model.h>
 #include <portmodel.h>
 #include <osuilografmodel.h>
+#include <tp8model.h>
+//////библиотека Управления камерой////////////
+#include <cambermodel.h>
+#include <proverkamodel.h>
+#include <algorithmmodel.h>
+#include <clockcircle.h>
+#include <finddevicemodel.h>
 
-#include <proverka.h>
-
-#include <tp8.h>
-#include <bdata.h>
 #include <report.h>
 
-
-//////////////////
-#include <finddevice.h>
-
-
-#include <screencapture.h>
-
-#include <QQuickWindow>
-
-
-//////библиотека таймера////////////
-#include "clockcircle.h"
-//////библиотека Управления камерой////////////
-#include "cambermodel.h"
+#include <QQmlProperty>
+#include <QQmlComponent>
 
 int main(int argc, char *argv[])
 {
-
-    // Если бы передан дополнительный аргумент,
-    //    if (argc > 1)
-     //   {
-            // то попытаемся вывести полученный аргумент
-     //       qDebug() << argv[1]<<endl;
-
-     //       return 0;
-     //   }
-      //  else
-      //  {
-            // В противном случае сообщаем, что аргументы не передавались
-      //      qDebug() << "Without arguments" << endl;
-
-       // }
-
-
-
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-
 
     // Qt Charts uses Qt Graphics View Framework for drawing, therefore QApplication must be used.
     QApplication app(argc, argv);
-
-
-
     app.setApplicationVersion("1.0");
-    app.setOrganizationName("RadioSvRz");
+    app.setOrganizationName("NPP Radio");
+
+
+
+    N6700Model* n6700_1 = nullptr;
+    N6700Model* n6700_2 = nullptr;
+    CamberModel* camber = nullptr;
+    gsgModel* gsg = nullptr;
+    OsuilografModel* os = nullptr;
+    tp8Model* tp = nullptr;
+
+    PortModel* port1 = nullptr;
+    PortModel* port2 = nullptr;
+    PortModel* port3 = nullptr;
+    PortModel* port4 = nullptr;
+    PortModel* port5 = nullptr;
+    PortModel* port6 = nullptr;
+    PortModel* port7 = nullptr;
+    PortModel* port8 = nullptr;
+
+    ClockCircle* clock = nullptr;
+    AlgorithmModel* alg = nullptr;
+    FindDeviceModel* find = nullptr;
+    Report* pdf = nullptr;
+
+    find = new FindDeviceModel;
+
+    n6700_1 = new N6700Model;
+    n6700_2 = new N6700Model;
+
+    camber = new CamberModel;
+
+    gsg = new gsgModel;
+    os = new OsuilografModel;
+
+    port1 = new PortModel;
+    port2 = new PortModel;
+    port3 = new PortModel;
+    port4 = new PortModel;
+    port5 = new PortModel;
+    port6 = new PortModel;
+    port7 = new PortModel;
+    port8 = new PortModel;
+
+
+
+   // find->work();
 
 
     // Всё, что требуется в данном файле - это зарегистрировать новый класс (Тип объекта) для QML слоя
     qmlRegisterType<ClockCircle>("ClockCircle",1,0,"ClockCircle");
 
+    alg = new AlgorithmModel;
+    pdf = new Report(alg->alg);
 
-    FindDevice* find = new FindDevice();
-
-    //find->moveToThread(new QThread());
-
-    // find->thread()->start();
-
-    qDebug () << "Main thread : " << app.thread();
-
-
-    qDebug () << "gsgModel* gsg : create (new)";
-    gsgModel* gsg = new gsgModel(); // Создали модель класса gsg, для управления и обновления объектов в QML
-    qDebug () << "gsgModel* gsg = " << sizeof(gsg);
-
-    qDebug () << "N6700Model* n6700_1 : create (new)";
-    N6700Model* n6700_1 = new N6700Model(); // Создали модель класса n6700, для управления и обновления объектов в QML
-    qDebug () << "N6700Model* n6700_1 = " << sizeof(n6700_1);
-
-    qDebug () << "N6700Model* n6700_2 : create (new)";
-    N6700Model* n6700_2 = new N6700Model(); // Создали модель класса n6700, для управления и обновления объектов в QML
-    qDebug () << "N6700Model* n6700_2 = " << sizeof(n6700_2);
-
-    qDebug () << "OsuilografModel* os : create (new)";
-    OsuilografModel* os = new OsuilografModel(); // Создали модель класса n6700, для управления и обновления объектов в QML
-    qDebug () << "OsuilografModel* os  = " << sizeof(os);
-
-    qDebug () << "TP8* tp : create (new)";
-    TP8* tp = new TP8();
-    qDebug () << "TP8* tp = " << sizeof(tp);
-
-    qDebug () << "PortModel* port1 : create (new)";
-    PortModel* port1 = new PortModel(); // Создали модель класса port, для управления и обновления объектов в QML
-    qDebug () << "PortModel* port1 = " << sizeof(port1);
-
-    qDebug () << "PortModel* port2 : create (new)";
-    PortModel* port2 = new PortModel(); // Создали модель класса port, для управления и обновления объектов в QML
-    qDebug () << "PortModel* port2 = " << sizeof(port2);
-
-    qDebug () << "PortModel* port3 : create (new)";
-    PortModel* port3 = new PortModel(); // Создали модель класса port, для управления и обновления объектов в QML
-    qDebug () << "PortModel* port3 = " << sizeof(port3);
-
-    qDebug () << "PortModel* port4 : create (new)";
-    PortModel* port4 = new PortModel(); // Создали модель класса port, для управления и обновления объектов в QML
-    qDebug () << "PortModel* port4 = " << sizeof(port4);
-
-    qDebug () << "PortModel* port5 : create (new)";
-    PortModel* port5 = new PortModel(); // Создали модель класса port, для управления и обновления объектов в QML
-    qDebug () << "PortModel* port5 = " << sizeof(port5);
-
-    qDebug () << "PortModel* port6 : create (new)";
-    PortModel* port6 = new PortModel(); // Создали модель класса port, для управления и обновления объектов в QML
-    qDebug () << "PortModel* port6 = " << sizeof(port6);
-
-    qDebug () << "PortModel* port7 : create (new)";
-    PortModel* port7 = new PortModel(); // Создали модель класса port, для управления и обновления объектов в QML
-    qDebug () << "PortModel* port7 = " << sizeof(port7);
-
-    qDebug () << "PortModel* port8 : create (new)";
-    PortModel* port8 = new PortModel(); // Создали модель класса port, для управления и обновления объектов в QML
-    qDebug () << "PortModel* port8 = " << sizeof(port8);
-
-    //БД
-    qDebug () << "BData* BD : create (new)";
-    BData* BD = new BData(); // Создали класс для работы с базой данных
-    qDebug () << "BData* BD = " << sizeof(BD);
-
-    BD->moveToThread(new QThread()); //Поместили класс для работы с БД в новый поток.
-    qDebug () << "Помещаем класс  << BData >> в поток: " << BD->thread();
-
-    BD->thread()->start(); // Запускаем поток класса для работы с БД
-    qDebug () << "Запускаем поток << BData >> : " << BD->thread();
-
-    BD->connect(); // Подключаемся к БД
-
-    gsg->SetBD(BD); // Передаем указатель на класс БД для работы с ним из класса GSG для того чтоб во время проверок записывать для каждого.
-    gsg->Sed_TP_OS(os,tp); // Передаем указатель на класс Осцилографа и Пульта для использования его в проверках.
+    tp = new tp8Model;
 
 
     QQmlApplicationEngine engine;
-
-    screenCapture screenClass(&engine);
-
-
-
-    CamberModel* camber = new CamberModel(); //Создание объекта для управления камерой
-
-
-
-
-
-
-    qDebug () << "Proverka* proverka : create (new)";
-    Proverka* proverka = new Proverka(camber,gsg,n6700_1,port1,port2,port3,port4,port5,port6,port7,port8,&screenClass); // Создали модель класса port, для управления и обновления объектов в QML
-    qDebug () << "Proverka* proverka = " << sizeof(proverka);
-
-
-
-
-    engine.rootContext()->setContextProperty("screenObject", &screenClass);
-
-    proverka->SetBD(BD);
-
-
-    Report* pdf = new Report(gsg); // Создаем класс для создания Отчетности.
-
-
-
 
     engine.rootContext()->setContextProperty("camber", camber);
     engine.rootContext()->setContextProperty("pdf", pdf);
@@ -193,19 +113,50 @@ int main(int argc, char *argv[])
 
     engine.rootContext()->setContextProperty("find", find);
 
-    engine.rootContext()->setContextProperty("proverka", proverka);
-
-    engine.load(QUrl(QLatin1String("qrc:/main.qml")));
-
-    auto exit = app.exec();
-
-    if(camber->slot_TestConnect())
-    {
-        camber->slot_stopCamberWork();
-
-        Sleep(1000);
-    }
+    engine.rootContext()->setContextProperty("proverka", alg);
 
 
-    return exit;
+    engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
+
+    QObject *rootObject = engine.rootObjects().first();
+    QObject *qmlObject = rootObject->findChild<QObject*>("MyClock");
+
+    //qDebug() << "Property value:" << QQmlProperty::read(qmlObject, "name");
+
+
+    clock = dynamic_cast<ClockCircle*>(qmlObject);
+
+
+
+    alg->setDevice(camber,gsg,n6700_1,n6700_2,os,tp,port1,port2,port3,port4,port5,port6,port7,port8,clock);
+
+
+    if (engine.rootObjects().isEmpty())
+        return -1;
+
+
+    auto ex = app.exec();
+
+
+    delete tp;
+    delete find;
+    delete alg;
+    delete gsg;
+    delete n6700_1;
+    delete n6700_2;
+    delete os;
+
+    delete port1;
+    delete port2;
+    delete port3;
+    delete port4;
+    delete port5;
+    delete port6;
+    delete port7;
+    delete port8;
+
+    delete camber;
+
+
+    return ex;
 }

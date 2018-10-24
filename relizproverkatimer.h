@@ -19,7 +19,8 @@ class relizproverkaTimer : public QObject
     Q_OBJECT
 public:
     explicit relizproverkaTimer(int indexGet,N6700Model* n6700,
-                                gsgModel* gsgModelGet,PortModel* port,RelizProverka*,QObject *parent = 0);
+                                gsgModel* gsgModelGet,PortModel* port,RelizProverka*,QObject *parent = nullptr);
+    ~relizproverkaTimer();
 
 
      int index;
@@ -51,6 +52,7 @@ public:
 
 signals:
     void startTimer1(int);
+
     void stopTimer1();
 
     void startTimer_liters(int);
@@ -62,14 +64,16 @@ signals:
 
     void signal_Tick(QString);
 
-    void signal_GoodQML(bool ok);
+    void signal_GoodQML(bool ok,int index);
 
     /////////////////////////////////////////////////////
     void signal_GetMrk_OT();
     void signal_GetMrk_liters(int);
-    void signal_GetMrk_liters_2(int);
+
+    void signal_finished();
 
 public slots:
+    void process_start();
     void process_start_timer();
     void process_start_timer_liters();
     void process_start_timer_seitings();
@@ -83,7 +87,19 @@ public slots:
     void slot_Power(QString);
 
     void slot_EndBlock();
+    void slot_EndBlock2(bool ok);
+
     void slot_EndBlock_5_proverka();
+
+    void slot_EndBlock_proverka();
+
+
+    void slot_stopProverka_error_10Mhz();
+
+
+    //findLiter_QML
+    QString findLiter(int liters);
+
 };
 
 #endif // RELIZPROVERKATIMER_H

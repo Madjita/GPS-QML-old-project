@@ -10,8 +10,12 @@ class CamberModel : public QObject
 {
     Q_OBJECT
 public:
-    explicit CamberModel(QObject *parent = 0);
+    explicit CamberModel(QObject *parent = nullptr);
     ~CamberModel();
+
+    Q_PROPERTY(QString name READ name)
+    QString & name();
+
 
     Camber* camber;
 
@@ -46,6 +50,9 @@ public slots:
     void slot_SetCold();// Установить -60 (-40)
 
     bool slot_connectOk();
+
+private:
+    QString _name;
 };
 
 #endif // CAMBERMODEL_H

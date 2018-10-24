@@ -28,7 +28,7 @@ public:
 
 
     //База данных
-    QSqlDatabase db;
+    QSqlDatabase* db;
 
     //Запрос к базе:
     QSqlQuery* query;
@@ -44,13 +44,19 @@ public:
     QSqlQueryModel* queryModel_8;
 
 
+signals:
+    void sendZapros(QString data);
+
+
 //Слоты
 public slots:
+    void getZapros(QString data);
+    void writeBD(QString data);
 
     //Подключение БД
-    QString connect();
+    QString connectBD();
     //Отключение БД
-    QString DiscConnect();
+    void DiscConnect();
     //Создание Таблицы в БД
     QString create(QString,QVector<QString>);
     //Запрос в БД
@@ -58,10 +64,16 @@ public slots:
     // Модельный запрос в БД
     QSqlQueryModel* zaprosQueryModel(QString);
     // Модельный запрос в БД (перегрузка) для записи по каждой плате
-    QSqlQueryModel* zaprosQueryModel(QString,int);
+    QSqlQueryModel* zaprosQueryModel2(QString,int);
+
+    //Обнулить инкримент таблицы
+    void updateIncrementTable(QString nameTable);
+    QStringList allTable();
 
     // Запрос на поиск ID устрйоств по имени
     QString Id_Find(QString);
+
+    QStringList report(QString data,int column);
 
 };
 

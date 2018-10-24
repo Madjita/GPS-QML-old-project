@@ -4,15 +4,19 @@ Camber::Camber(QObject *parent) : QObject(parent),
     mode("login"),
     camberInform(new CamberInform)
 {
+
     connect(this,&Camber::destroyed,this,&Camber::stopCamberWork,Qt::DirectConnection);
+
+    this->moveToThread(new QThread());
+    connect(this->thread(),&QThread::started,this,&Camber::prosecc);
+    connect(this,&Camber::signal_finished, this->thread(), &QThread::quit);
+    this->thread()->start();
+
 }
 
 Camber::~Camber()
 {
-
-    client->disconnectFromHost();
-    client->close();
-    delete client;
+    emit signal_finished();
 }
 
 void Camber::SendMessageConnect()
@@ -80,7 +84,7 @@ void Camber::getResponse(QNetworkReply *reply)
             }
             else
             {
-                emit signalStartTiemr();
+               // emit signalStartTiemr();
             }
         }
 
@@ -88,7 +92,6 @@ void Camber::getResponse(QNetworkReply *reply)
         {
             if(updateCamberInform->internalTimer->isActive())
             {
-
                 emit sendData2(data);
             }
         }
@@ -110,13 +113,20 @@ void Camber::getResponse(QNetworkReply *reply)
 
         if(mode == "wh01_work_stop_ok")
         {
-            emit signalStartTiemr();
+           // emit signalStartTiemr();
         }
 
 
 
     } else
     {
+
+        if( reply->error() == QNetworkReply::NoError )
+        {
+            flagConnect = false;
+            emit connectOk();
+        }
+
 
         if(mode == "login_connect" || mode == "login")
         {
@@ -138,13 +148,13 @@ void Camber::getResponse(QNetworkReply *reply)
 
 }
 
-void Camber::connectCamber(QString ip)
+void Camber::connectCamber(QString _ip)
 {
     mode.clear();
     mode = "login";
+    ip = _ip;
     QNetworkRequest request(QUrl("http://"+ip+"/login.php")); //status.php
     mngr->get(request);
-
 }
 
 void Camber::sendCamberPostAdmin()
@@ -152,7 +162,7 @@ void Camber::sendCamberPostAdmin()
     mode.clear();
     mode = "login_connect";
 
-    QNetworkRequest request(QUrl("http://169.254.69.140/login.php"));
+    QNetworkRequest request(QUrl("http://"+ip+"/login.php"));
 
     request.setHeader(QNetworkRequest::ContentTypeHeader,QVariant("application/x-www-form-urlencoded"));
 
@@ -177,18 +187,19 @@ void Camber::openCamberBoard()
     mode.clear();
     mode = "wh01";
 
-    QNetworkRequest request2(QUrl("http://169.254.69.140/wo01.php"));
+    QNetworkRequest request2(QUrl("http://"+ip+"/wo01.php"));
 
     mngr->get(request2);
 }
 
 void Camber::startCamberWork()
 {
-    emit signalStopTiemr();
+   // emit signalStopTiemr();
+
     mode.clear();
     mode = "wh01_work";
 
-    QNetworkRequest request(QUrl("http://169.254.69.140/wo01.php"));
+    QNetworkRequest request(QUrl("http://"+ip+"/wo01.php"));
 
     request.setHeader(QNetworkRequest::ContentTypeHeader,QVariant("application/x-www-form-urlencoded"));
 
@@ -212,7 +223,7 @@ void Camber::startCamberWorkOk()
     mode.clear();
     mode = "wh01_work_ok";
 
-    QNetworkRequest request(QUrl("http://169.254.69.140/wo01.php"));
+    QNetworkRequest request(QUrl("http://"+ip+"/wo01.php"));
     request.setHeader(QNetworkRequest::ContentTypeHeader,QVariant("application/x-www-form-urlencoded"));
 
     QUrlQuery  params;
@@ -236,7 +247,7 @@ void Camber::stopCamberWork()
     mode.clear();
     mode = "wh01_work_stop";
 
-    QNetworkRequest request(QUrl("http://169.254.69.140/wo01.php"));
+    QNetworkRequest request(QUrl("http://"+ip+"/wo01.php"));
     request.setHeader(QNetworkRequest::ContentTypeHeader,QVariant("application/x-www-form-urlencoded"));
 
     QUrlQuery  params;
@@ -258,7 +269,7 @@ void Camber::stopCamberWorkOk()
     mode.clear();
     mode = "wh01_work_stop_ok";
 
-    QNetworkRequest request(QUrl("http://169.254.69.140/wo01.php"));
+    QNetworkRequest request(QUrl("http://"+ip+"/wo01.php"));
 
 
     request.setHeader(QNetworkRequest::ContentTypeHeader,QVariant("application/x-www-form-urlencoded"));
@@ -277,8 +288,11 @@ void Camber::stopCamberWorkOk()
 
 void Camber::setCamberNY()
 {
+    //camberInform->tempSV = "25";
+    emit signalStartTiemr();
+
     mode.clear();
-    QNetworkRequest request(QUrl("http://169.254.69.140/wo01.php"));
+    QNetworkRequest request(QUrl("http://"+ip+"/wo01.php"));
     request.setHeader(QNetworkRequest::ContentTypeHeader,QVariant("application/x-www-form-urlencoded"));
 
     QUrlQuery  params;
@@ -297,8 +311,13 @@ void Camber::setCamberNY()
 
 void Camber::setCamberHort()
 {
+   // camberInform->tempSV = "55";
+    emit signalStartTiemr();
+
+
+
     mode.clear();
-    QNetworkRequest request(QUrl("http://169.254.69.140/wo01.php"));
+    QNetworkRequest request(QUrl("http://"+ip+"/wo01.php"));
 
 
     request.setHeader(QNetworkRequest::ContentTypeHeader,QVariant("application/x-www-form-urlencoded"));
@@ -322,9 +341,13 @@ void Camber::setCamberHort()
 
 void Camber::setCamberCold()
 {
+
+   // camberInform->tempSV = "-40";
+    emit signalStartTiemr();
+
     //написать код для установки 3 программы (установить ее в камере)
     mode.clear();
-    QNetworkRequest request(QUrl("http://169.254.69.140/wo01.php"));
+    QNetworkRequest request(QUrl("http://"+ip+"/wo01.php"));
 
 
     request.setHeader(QNetworkRequest::ContentTypeHeader,QVariant("application/x-www-form-urlencoded"));
@@ -354,9 +377,6 @@ void Camber::prosecc()
 
     updateCamberInform = new Update(this);
 
-    updateCamberInform->moveToThread(new QThread());
-
-    updateCamberInform->thread()->start();
 
 
     connect(updateCamberInform->thread(),&QThread::started,updateCamberInform,&Update::process_start_thread);
@@ -366,15 +386,10 @@ void Camber::prosecc()
 
 
     connect(mngr, SIGNAL(finished(QNetworkReply*)),this, SLOT(getResponse(QNetworkReply*)));
-
     connect(this,&Camber::signalConnect,this,&Camber::sendCamberPostAdmin,Qt::DirectConnection);
-
     connect(this,&Camber::signalOpenBoard,this,&Camber::openCamberBoard,Qt::DirectConnection);
-
     connect(this,&Camber::signalWorkOK,this,&Camber::startCamberWorkOk,Qt::DirectConnection);
-
     connect(this,&Camber::signalWorkStopOK,this,&Camber::stopCamberWorkOk,Qt::DirectConnection);
-
     connect(this,&Camber::sendData2,updateCamberInform,&Update::RasparsHTML,Qt::DirectConnection);
 }
 
@@ -385,7 +400,9 @@ Update::Update(Camber* GetCamber,QObject *parent) :
     camber(GetCamber),
     m_Time(QTime(0,0,0,0))
 {
-
+    this->moveToThread(new QThread());
+    connect(this->thread(),&QThread::started,this,&Update::process_start);
+    this->thread()->start();
 }
 
 Update::~Update()
@@ -395,9 +412,51 @@ Update::~Update()
 
 void Update::updateInform()
 {
+//    if(camber->camberInform->tempSV.toInt() > 0 && camber->camberInform->tempPV.toInt() < 0)
+//    {
+//       camber->camberInform->tempPV =  QString::number(strTempPV.toInt() + 1);
+//    }
+//    else
+//    {
+
+//        if(camber->camberInform->tempSV.toInt() > 0 && camber->camberInform->tempPV.toInt() > 0)
+//        {
+//            if(camber->camberInform->tempPV.toInt() > camber->camberInform->tempSV.toInt())
+//            {
+//                camber->camberInform->tempPV =  QString::number(camber->camberInform->tempPV.toInt() - 1);
+//            }
+//            else
+//            {
+//              camber->camberInform->tempPV =  QString::number(camber->camberInform->tempPV.toInt() + 1);
+//            }
+
+//        }
+//        else
+//        {
+//            if(camber->camberInform->tempPV.toInt() < camber->camberInform->tempSV.toInt())
+//            {
+//                camber->camberInform->tempPV =  QString::number(camber->camberInform->tempPV.toInt() + 1);
+//            }
+//            else
+//            {
+//              camber->camberInform->tempPV =  QString::number(camber->camberInform->tempPV.toInt() - 1);
+//            }
+
+//        }
+//    }
+
+//     qDebug () << "=============================================";
+
+//     qDebug () << camber->camberInform->tempSV;
+//     qDebug () << camber->camberInform->tempPV;
+
+//     camber->sendData(camber->camberInform->current,camber->camberInform->data,camber->camberInform->totalTime,camber->camberInform->stepTimeLeft,camber->camberInform->tempSV,camber->camberInform->tempPV,camber->camberInform->tempHeater,camber->camberInform->refrigeration);
+
+
+
     camber->mode.clear();
     camber->mode = "status";
-    QNetworkRequest request2(QUrl("http://169.254.69.140/status.php"));
+    QNetworkRequest request2(QUrl("http://"+camber->ip+"/status.php"));
 
     camber->mngr->get(request2);
 }
@@ -411,12 +470,16 @@ void Update::process_start_thread()
 
 void Update::start_m_Time()
 {
-    internalTimer->start(500);
+    internalTimer->start(1000); //500
 }
 
 void Update::stop_m_Time()
 {
-    internalTimer->stop();
+
+    //if(internalTimer->isActive())
+   // {
+        internalTimer->stop();
+   // }
 }
 
 void Update::RasparsHTML(QString str)
@@ -561,5 +624,10 @@ void Update::RasparsHTML(QString str)
     qDebug () << camber->camberInform->refrigeration;
 
     camber->sendData(camber->camberInform->current,camber->camberInform->data,camber->camberInform->totalTime,camber->camberInform->stepTimeLeft,camber->camberInform->tempSV,camber->camberInform->tempPV,camber->camberInform->tempHeater,camber->camberInform->refrigeration);
+
+}
+
+void Update::process_start()
+{
 
 }

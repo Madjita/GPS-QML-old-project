@@ -16,7 +16,8 @@ class Osuilograf : public QObject
 {
     Q_OBJECT
 public:
-    explicit Osuilograf(QObject *parent = 0);
+    explicit Osuilograf(QObject *parent = nullptr);
+    ~Osuilograf();
 
     ViSession vi;
     int viStatus;
@@ -38,15 +39,12 @@ public:
     QString ManufacturerDefault;
 
 
-
-    ~Osuilograf()
-    {
-        viClose(vi);
-    }
-
     bool flag_work;
 
     QString dataPower;
+
+    bool flag_change_seitings;
+    bool flag_change_seitings_3;
 
 
 public slots:
@@ -97,6 +95,7 @@ public slots:
     QString getDelay();
     QString getAmplitude();
     QString getVMAX(QString canal);
+    QString getVRMS(QString canal);
 //////////////////////////////////////////////////
     QString getCONTrol();
     QString getSIGNALtype();
@@ -138,6 +137,8 @@ signals:
     void startTimer_Amplituda(int);
 
     void signal_QMLStart();
+
+    void signal_finished();
 
 };
 

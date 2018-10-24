@@ -2,7 +2,7 @@
 #define REPORT_H
 
 #include <QObject>
-#include <gsgmodel.h>
+#include <algorithm.h>
 
 #include <QAxObject>
 #include <QAxWidget>
@@ -13,7 +13,7 @@ class Report : public QObject
     Q_OBJECT
 
 public:
-    explicit Report(gsgModel* GetGSG,QObject *parent = 0);
+    explicit Report(Algorithm* _alg,QObject *parent = nullptr);
 
     //Имя спутника
     Q_PROPERTY(QStringList  listSelect READ listSelect NOTIFY signal_listSelectChanged)
@@ -21,7 +21,7 @@ public:
     void SetlistSelect(const QStringList & listSelect);
 
 
-    gsgModel* gsg;
+    Algorithm* alg;
 
     QString start_proverka;
     QString stay_proverka;
@@ -130,11 +130,6 @@ public slots:
 
 
     void slot_setSelect(QString,int);
-
-
-    //На всякий случай Код экспорта в CSV файл ( таблица)
-    void exportCSV();
-    int countRow();
 
 };
 

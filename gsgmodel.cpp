@@ -6,45 +6,40 @@ gsgModel::gsgModel(QObject *parent) : QObject(parent),
     G(0)
 {
 
-    qDebug () << "GSG* gsg : create (new)" << sizeof(gsg);
     gsg = new GSG();
-    qDebug () << "GSG* gsg = " << sizeof(gsg);
 
 
     //Соединение
-    QObject::connect(this,&gsgModel::connectDevice,gsg,&GSG::connectDevice,Qt::QueuedConnection);
+    connect(this,&gsgModel::connectDevice,gsg,&GSG::connectDevice);
     //Разъединение
-    QObject::connect(this,&gsgModel::DisConnect,gsg,&GSG::DisConnect,Qt::QueuedConnection);
+    connect(this,&gsgModel::DisConnect,gsg,&GSG::DisConnect);
     //Сигнал для подтверждения соединения
-    QObject::connect(gsg,&GSG::connectOk,this,&gsgModel::slot_connectOk,Qt::QueuedConnection);
+    connect(gsg,&GSG::connectOk,this,&gsgModel::slot_connectOk);
 
 
     //Сигнал для запуска таймера
-    QObject::connect(this,&gsgModel::startTimer,gsg,&GSG::slot_StartTimer,Qt::QueuedConnection);
+    connect(this,&gsgModel::startTimer,gsg,&GSG::slot_StartTimer);
     //Сигнал для отключения таймера
-    QObject::connect(this,&gsgModel::stopTimer,gsg,&GSG::endWork,Qt::QueuedConnection);
+    connect(this,&gsgModel::stopTimer,gsg,&GSG::endWork);
 
 
     //Обновление данных от gsg
-    QObject::connect(gsg,&GSG::UpdateScenNumberIDSpytnik,this,&gsgModel::slot_ScenNumberIDSpytnik);
+    connect(gsg,&GSG::UpdateScenNumberIDSpytnik,this,&gsgModel::slot_ScenNumberIDSpytnik);
 
     //Сигнал для установки режим "START"
-    QObject::connect(this,&gsgModel::signal_getCONTrol,gsg,&GSG::setCONTrol);
+    connect(this,&gsgModel::signal_getCONTrol,gsg,&GSG::setCONTrol);
 
     //Сигнал от gsg об установки режима "START"
-    QObject::connect(gsg,&GSG::signal_QMLStart,this,&gsgModel::getCONTrol,Qt::DirectConnection);
+    connect(gsg,&GSG::signal_QMLStart,this,&gsgModel::getCONTrol);
 
 
     //Сигнал для установки режима на сигнал генераторе "START"
-    QObject::connect(this,&gsgModel::signal_Gen_setCONTrol,gsg,&GSG::setGenCONTrol);
+    connect(this,&gsgModel::signal_Gen_setCONTrol,gsg,&GSG::setGenCONTrol);
 
+    connect(this,&gsgModel::signal_setPPSOUTput,gsg,&GSG::setPPSOUTput);
 
     //Сигнал для установки литеры спутника на сигнал генераторе
-    QObject::connect(this,&gsgModel::signal_Gen_setSATid,gsg,&GSG::setGenSATid);
-
-
-
-
+    connect(this,&gsgModel::signal_Gen_setSATid,gsg,&GSG::setGenSATid);
 
 
 
@@ -55,6 +50,11 @@ gsgModel::gsgModel(QObject *parent) : QObject(parent),
 
 
 
+}
+
+gsgModel::~gsgModel()
+{
+   delete gsg;
 }
 
 const QString &gsgModel::name() const
@@ -69,7 +69,7 @@ void gsgModel::SetBD(BData *bd)
 
 }
 
-void gsgModel::Sed_TP_OS(OsuilografModel * getOS, TP8 * getTP)
+void gsgModel::Sed_TP_OS(OsuilografModel * getOS, tp8Model * getTP)
 {
 
     os = getOS;
@@ -100,7 +100,7 @@ void gsgModel::slot_ScenNumberIDSpytnik(QString data)
 
     }
 
-    qDebug() <<"R = " << R <<"G = "<< G;
+  //  qDebug() <<"R = " << R <<"G = "<< G;
     emit countSpytnik_R(R);
     emit countSpytnik_G(G);
 }
@@ -171,5 +171,10 @@ void gsgModel::slot_Gen_setCONTrol(QString SIGNALtype)
 void gsgModel::slot_Gen_setSATid(QString SIGNALtype)
 {
     emit signal_Gen_setSATid(SIGNALtype);
+}
+
+void gsgModel::slot_setPPSOUTput(int on)
+{
+    emit signal_setPPSOUTput(on);
 }
 

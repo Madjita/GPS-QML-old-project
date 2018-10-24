@@ -6,23 +6,23 @@
 #include <gsgmodel.h>
 #include <n6700model.h>
 #include <portmodel.h>
-#include <QSemaphore>
+
+#include <tp8model.h>
+#include <osuilografmodel.h>
+
 
 #include <QDateTime>
 
 #include <QSemaphore>
 
 
-#include <screencapture.h>
-
 class RelizProverka : public QObject
 {
     Q_OBJECT
 public:
-    explicit RelizProverka(int indexGet,N6700Model* n6700,
-                           gsgModel* gsgModelGet,PortModel* port,QString GetName,screenCapture* screenClassGet, QObject *parent = 0);
-
-     screenCapture* screenClass;
+    explicit RelizProverka(int indexGet,int _indexList,N6700Model* n6700,
+                           gsgModel* gsgModelGet,OsuilografModel* _os, tp8Model* _tp,PortModel* port,QString GetName, QObject *parent = nullptr);
+    ~RelizProverka();
 
     //Автоматическая проверка
     bool flag_auto;
@@ -42,20 +42,20 @@ public:
     QDateTime stay_liter;
 
     //БД
-    BData* BD = new BData();
+   // BData* BD = new BData();
 
 
     int index;
 
     gsgModel* gsg;
     N6700Model* n6700;
+    OsuilografModel* os;
+    tp8Model* tp;
 
     PortModel* port;
 
-    QTimer* timer;
-
-
-    QTimer* timer2;
+//    QTimer* timer;
+//    QTimer* timer2;
 
     int minut;
     int sec;
@@ -80,11 +80,13 @@ public:
 
     int liter;
 
+    int indexList;
+
     QVector<bool> list_flag_good_2;
     QVector<bool> list_flag_good_3;
     QVector<bool> list_flag_good_5;
 
-
+    bool flag_start_mrk;
     bool flag_good_1;
     bool flag_good_2;
     bool flag_good_3;
@@ -97,8 +99,13 @@ public:
     bool flag_good_10;
 
 
+    bool flag_300MGH_6Proverka;
+
+
     //Функция установки литеры IdLink
     void SetIdLink(QString);
+
+     int Count_NP;
 
 
 signals:
@@ -120,16 +127,18 @@ signals:
     void signal_StartPort();
     void signal_StopPort();
 
-    void signal_EndProverka(int);
+    void signal_EndProverka(int,int);
+
+    void signal_slot_StartProverka_Os(int,int position);
 
 
 
-    //////////////////////////////////////////////
-    void startTimer1(int msec);
-    void startTimer2(int msec);
+//    //////////////////////////////////////////////
+//    void startTimer1(int msec);
+//    void startTimer2(int msec);
 
-    void stopTimer1();
-    void stopTimer2();
+//    void stopTimer1();
+//    void stopTimer2();
 
     void startWork();
     void startWork_liters();
@@ -160,12 +169,29 @@ signals:
     void signal_StartProverkaIndex(QString namberProverkaStart);
 
 
+    void signal_setTP_vneshnRR_10MGz();
+
+    void signal_beginOSProv(int index);
+    void signal_beginOSProv_7(int index);
+
+    void signal_endOSProv(int index);
+
+    void signal_start_10Proverka(int index);
+
+
+    void signal_finished();
+    ///BD
+    void sendZaprozToBD(QString);
+
+    void signal_qmlText(QString);
+
 public slots:
     void process_start();
 
-    void process_start_timer();
+//    void process_start_timer();
+//    void process_start_timer2();
 
-    void process_start_timer2();
+    void waitMRKLoad();
 
     // Проверки
      void proverka_rabotosposobnosti_NP_ID_1();
@@ -189,6 +215,8 @@ public slots:
      void proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_10();
 
     void Work(bool auto_test, int proverka);
+
+
 
 };
 

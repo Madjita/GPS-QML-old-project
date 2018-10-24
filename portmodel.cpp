@@ -3,19 +3,21 @@
 PortModel::PortModel(QObject *parent) : QObject(parent)
 {
 
-    qDebug () << "PortModel* PortNew : create (new)";
     PortNew = new Port();
-    qDebug () << "PortModel* PortNew = " << sizeof(PortNew);
 
-  //  QObject::connect(PortNew,SIGNAL(outMRKdata(frameExample)), this,SLOT(Update_MRK_Ttable(frameExample))); //По нажатию кнопки подключить порт
+  //  connect(PortNew,SIGNAL(outMRKdata(frameExample)), this,SLOT(Update_MRK_Ttable(frameExample))); //По нажатию кнопки подключить порт
 
 
     qRegisterMetaType<frameExample>();
 
     //Сигнал на подключение порта
-    QObject::connect( this,&PortModel::open, PortNew,&Port::ConnectPort,Qt::QueuedConnection);
+    connect(this,&PortModel::open, PortNew,&Port::ConnectPort);
     //Сигнал от порта к QML , что он открыт или ошибка
-    QObject::connect( PortNew,&Port::outPortOpen, this,PortModel::openOK);
+    connect(PortNew,&Port::outPortOpen, this,&PortModel::openOK);
+    connect(this,&PortModel::signal_GetNameMRK,PortNew,&Port::GetMrk_Name);
+    connect(PortNew,&Port::signal_MRkLoad,this,&PortModel::slot_MRkLoad);
+    connect(PortNew,&Port::signal_MRkLoadProverka,this,&PortModel::slot_MRkLoadProverka);
+    connect(PortNew,&Port::signal_MRkgetName,this,&PortModel::slot_MRkGetName);
 
 
     m_listCOM.clear();
@@ -26,23 +28,29 @@ PortModel::PortModel(QObject *parent) : QObject(parent)
 
     }
 
-    qDebug () <<"Доступные порты: " <<  m_listCOM.toVector();
+    qDebug () <<"Доступные порты: " <<  m_listCOM;
 
     emit listCOMChanged(m_listCOM);
 
-    QObject::connect(this,&PortModel::Work,PortNew,&Port::Work);
-    QObject::connect(this,&PortModel::endWork,PortNew,&Port::END);
+    connect(this,&PortModel::Work,PortNew,&Port::Work);
 
-    QObject::connect(this,&PortModel::Write_Setting_Port,PortNew,&Port::Write_Setting_Port);
+    connect(this,&PortModel::endWork,PortNew,&Port::END);
 
-    QObject::connect(this,&PortModel::DisconnectPort,PortNew,&Port::DisconnectPort,Qt::QueuedConnection);
+    connect(this,&PortModel::Write_Setting_Port,PortNew,&Port::Write_Setting_Port);
 
-    QObject::connect(PortNew,&Port::UpdateCountFind,this,&PortModel::UpdateCountFind,Qt::QueuedConnection);
+    connect(this,&PortModel::DisconnectPort,PortNew,&Port::DisconnectPort);
 
-
-    QObject::connect(PortNew,&Port::signal_GoTORelizproverka,this,&PortModel::setListSpytnik,Qt::QueuedConnection);
+    connect(PortNew,&Port::UpdateCountFind,this,&PortModel::UpdateCountFind);
 
 
+   // connect(PortNew,&Port::signal_GoTORelizproverka,this,&PortModel::setListSpytnik);
+
+
+}
+
+PortModel::~PortModel()
+{
+    delete PortNew;
 }
 
 const QStringList PortModel::listCOM() const
@@ -55,14 +63,18 @@ const QString PortModel::nameOpenPort() const
     return name;
 }
 
+bool PortModel::mrkLoad() const
+{
+    return _mrkLoad;
+}
+
 void PortModel::openPort(QString name)
 {
    emit Write_Setting_Port(name,115200,8,0,1,0);
-   // PortNew->Write_Setting_Port(name, 115200,8,0,1,0);
 
-    qDebug() << " PortNew->Write_Setting_Port = " << name;
+   qDebug() << " PortNew->Write_Setting_Port = " << name;
 
-    emit open();
+   emit open();
 }
 
 void PortModel::openOK(QString ok)
@@ -90,7 +102,6 @@ void PortModel::closePort()
 
 void PortModel::slot_Work()
 {
-   qDebug() << "LOL ";
    emit Work();
 }
 
@@ -120,17 +131,36 @@ void PortModel::setListSpytnik(QStringList listSP,QStringList listSP_Amplitude,Q
 
 }
 
+void PortModel::slot_getNameMRK()
+{
+    emit signal_GetNameMRK();
+}
+
+void PortModel::slot_MRkLoad(bool load)
+{
+   _mrkLoad = load;
+
+   emit mrkLoadChanged(load);
+}
+
+void PortModel::slot_MRkLoadProverka(bool load)
+{
+    _mrkLoadProverka = load;
+
+    emit mrkLoadProverkaChanged(load);
+}
+
+void PortModel::slot_MRkGetName(QByteArray nameMRK)
+{
+    emit sendNameMRK();
+}
+
 void PortModel::UpdateCountFind(int CountFindGLONASSGet,int CountFindGPSGet,  int CountFindALLGet)
 {
 
     CountFindGPS = CountFindGPSGet;
     CountFindGLONASS = CountFindGLONASSGet;
-
     CountFindALL = CountFindALLGet;
 
     emit UpdateCountFindQML(CountFindGLONASS,CountFindGPS,CountFindALL);
-//    qDebug() <<"CountFindGLONASS = " << CountFindGLONASS;
-//  qDebug() <<"CountFindGPS = " <<  CountFindGPS;
-//     qDebug() <<"CountFindALL = " <<  CountFindALL;
-
 }

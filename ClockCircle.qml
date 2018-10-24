@@ -6,10 +6,13 @@ import QtQml 2.2
 import ClockCircle 1.0
 import QtQuick.Layouts 1.0
 
+
+
 Item {
     id:clock
 
-    property string textTimerSet: "00:00:02.000";
+    property string textTimerSet: "00:00:05.000";
+
 
 
 
@@ -450,6 +453,7 @@ Item {
     // А теперь добавляем объект
     ClockCircle {
         id: clockCircle
+        objectName: "MyClock"
         // позиционируем его и задаём размеры
         //  anchors.top: parent.top
         // anchors.topMargin: 50
@@ -509,6 +513,24 @@ Item {
 
 
 
+        Connections
+        {
+            target: proverka
+
+            // @disable-check M16
+            onQml_text:
+            {
+                label.text = qsTr(str);
+            }
+
+            // @disable-check M16
+            onSignal_StartProverka:
+            {
+                view.currentIndex = 3;
+            }
+        }
+
+
 
         // При изменении времени, помещаем это время на таймер
         onCircleTimeChanged: {
@@ -523,33 +545,36 @@ Item {
                 textTimer.text = "";
 
 
-                label.text = qsTr("Загрузка имитатора на имитацию сигнала...");
+                //label.text = qsTr("Загрузка имитатора на имитацию сигнала...");
 
                 //Показать что запускается имитатор
                 busyIndicatorLayout.visible = true;
 
-
-
                 //Запускаем проверку
-                if(proverka.autoProverka && ( proverka.modeStart == "Регулировка" || proverka.modeStart == "ПСИ"))
-                {
-                    proverka.slot_StartProverka();
-                }
-                else
-                {
+                clockCircle.slot_Finish();
 
-                    if(proverka.autoProverka && ( proverka.modeStart == "После технической тренировки в НУ" || proverka.modeStart == "Проверка неприрывной работы"))
-                    {
-                        proverka.slot_StartProverka2();
-                    }
-                    else
-                    {
-                        //написать код который будет запускать разные првоерки
-                        //относительно той которую выбрали.
-                        proverka.slot_StartProverka3();
-                    }
 
-                }
+                view.currentIndex = 4;
+
+//                if(proverka.autoProverka && ( proverka.modeStart == "Регулировка" || proverka.modeStart == "ПСИ"))
+//                {
+//                    proverka.slot_StartProverka();
+//                }
+//                else
+//                {
+
+//                    if(proverka.autoProverka && ( proverka.modeStart == "После технической тренировки в НУ" || proverka.modeStart == "Проверка неприрывной работы"))
+//                    {
+//                        proverka.slot_StartProverka2();
+//                    }
+//                    else
+//                    {
+//                        //написать код который будет запускать разные првоерки
+//                        //относительно той которую выбрали.
+//                        proverka.slot_StartProverka3();
+//                    }
+
+//                }
 
             }
             gc();
@@ -592,17 +617,16 @@ Item {
 
 
 
-            if(tempPV == tempSV && busyIndicatorLayout.visible == true && label.text != qsTr("Загрузка имитатора на имитацию сигнала..."))
+            if(tempPV == tempSV && busyIndicatorLayout.visible == true && label.text !== qsTr("Загрузка имитатора на имитацию сигнала..."))
             {
                 busyIndicatorLayout.visible = false;
                 clockCircle.start();
             }
 
-            if(busyIndicatorLayout.visible == true && label.text != qsTr("Загрузка имитатора на имитацию сигнала..."))
+            if(busyIndicatorLayout.visible == true && label.text !== qsTr("Загрузка имитатора на имитацию сигнала..."))
             {
                 label.text = qsTr("Ждем заданную температуру камеры "+temratureStayCamberText.text+"...");
             }
-
 
             gc();
         }
@@ -672,3 +696,8 @@ Item {
 //        }
 //    }
 }
+
+/*##^## Designer {
+    D{i:0;autoSize:true;height:480;width:640}
+}
+ ##^##*/

@@ -7,35 +7,34 @@ N6700Model::N6700Model(QObject *parent) : QObject(parent),
     item4(new ItemIstochnik)
 {
 
-    qDebug () << "N6700Model* N6700 : create (new)";
     n6700 = new N6700();
-    qDebug () << "N6700Model* N6700 = " << sizeof(n6700);
 
     //Соединение
-    QObject::connect(this,&N6700Model::connectDevice,n6700,&N6700::Connect,Qt::QueuedConnection);
+    connect(this,&N6700Model::connectDevice,n6700,&N6700::Connect);
     //Разъединение
-    QObject::connect(this,&N6700Model::DisConnect,n6700,&N6700::DisConnect,Qt::QueuedConnection);
+    connect(this,&N6700Model::DisConnect,n6700,&N6700::DisConnect);
     //Сигнал для подтверждения соединения
-    QObject::connect(n6700,&N6700::connectOk,this,&N6700Model::slot_connectOk,Qt::QueuedConnection);
+    connect(n6700,&N6700::connectOk,this,&N6700Model::slot_connectOk);
 
 
-   // QObject::connect(this,&N6700Model::endWork,n6700,&N6700::endWork,Qt::QueuedConnection);
+   // connect(this,&N6700Model::endWork,n6700,&N6700::endWork);
 
-   // QObject::connect(this,&N6700Model::Work,n6700,&N6700::Work);
+   // connect(this,&N6700Model::Work,n6700,&N6700::Work);
 
     //Сигнал для запуска таймера
-    QObject::connect(this,&N6700Model::startTimer,n6700,&N6700::slot_StartTimer,Qt::QueuedConnection);
+    connect(this,&N6700Model::startTimer,n6700,&N6700::slot_StartTimer);
     //Сигнал для отключения таймера
-    QObject::connect(this,&N6700Model::stopTimer,n6700,&N6700::endWork,Qt::QueuedConnection);
+    connect(this,&N6700Model::stopTimer,n6700,&N6700::endWork);
 
 
     //Обновление данных от n6700
-    QObject::connect(n6700,&N6700::getMeasureCURRentSignal,this,&N6700Model::slot_getMeasureCURRentSignal);
-    QObject::connect(n6700,&N6700::getMeasureVoltSignal,this,&N6700Model::slot_getMeasureVoltSignal);
+    //изменил
+    //connect(n6700,&N6700::getMeasureCURRentSignal,this,&N6700Model::slot_getMeasureCURRentSignal);
+   // connect(n6700,&N6700::getMeasureVoltSignal,this,&N6700Model::slot_getMeasureVoltSignal);
 
 
-    QObject::connect(this,&N6700Model::setOut,n6700,&N6700::setOutput,Qt::QueuedConnection);
-    QObject::connect(this,&N6700Model::setVolt,n6700,&N6700::setVolt,Qt::QueuedConnection);
+    connect(this,&N6700Model::setOut,n6700,&N6700::setOutput);
+    connect(this,&N6700Model::setVolt,n6700,&N6700::setVolt);
 
     //Додумать насчет пересылки сгенерированных спутников (реализованно на подсчет)
     // Дописать сигнал для отображения мощности по каждому сгенирированному спутнику
@@ -43,6 +42,16 @@ N6700Model::N6700Model(QObject *parent) : QObject(parent),
 
    // qRegisterMetaType<QString,bool>();
 
+}
+
+N6700Model::~N6700Model()
+{
+    delete item1;
+    delete item2;
+    delete item3;
+    delete item4;
+
+    delete n6700;
 }
 
 const QString &N6700Model::name() const
@@ -112,4 +121,9 @@ void N6700Model::slot_getMeasureVoltSignal(QVector<QString> list)
 void N6700Model::slot_StopTimer()
 {
     emit stopTimer();
+}
+
+bool N6700Model::getConnect()
+{
+    return n6700->connected;
 }

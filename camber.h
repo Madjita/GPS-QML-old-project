@@ -41,16 +41,14 @@ class Camber : public QObject
 {
     Q_OBJECT
 public:
-     explicit Camber(QObject *parent = 0);
+     explicit Camber(QObject *parent = nullptr);
         ~Camber();
 
     Update* updateCamberInform;
-
     QString mode;
-
     CamberInform* camberInform;
-
     bool flagConnect;
+    QString ip;
 
 signals:
     void signalConnect(); //Отправить ПОСТ запрос для авторизации
@@ -67,6 +65,7 @@ signals:
     void errorCamber(QString); // Ошибка информация
 
     void connectOk();
+    void signal_finished();
 
 public  slots:
     //Слот для чтение данных с подключенным устроойством
@@ -120,6 +119,11 @@ public:
      QTime       m_Time;           // Текущее время таймера
      Camber* camber;
 
+
+     //
+     QString strTempSV; //установленная
+     QString strTempPV; // текущая
+
 public slots:
      void updateInform();
      void process_start_thread();
@@ -127,6 +131,8 @@ public slots:
      void stop_m_Time();
 
      void RasparsHTML(QString);
+
+     void process_start();
 
 
 };

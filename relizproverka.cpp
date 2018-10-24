@@ -1,36 +1,42 @@
 #include "relizproverka.h"
 #include <QDebug>
 
-#include <windows.h>
 #include <math.h>
 
-RelizProverka::RelizProverka(int indexGet,N6700Model* n6700Get,
-                             gsgModel* gsgModelGet,PortModel* portGet,QString GetName,screenCapture * screenClassget, QObject *parent):
+RelizProverka::RelizProverka(int indexGet,int _indexList,N6700Model* n6700Get,
+                             gsgModel* gsgModelGet, OsuilografModel* _os, tp8Model* _tp, PortModel* portGet,QString GetName,QObject *parent):
     QObject(parent),
     Name(GetName),
     index(indexGet),
-    Good(false),
     gsg(gsgModelGet),
     n6700(n6700Get),
+    os(_os),
+    tp(_tp),
     port(portGet),
-    countProverka(0),
-    liter(26),
-    count(0),
     minut(0),
-    sec(0),
-    screenClass(screenClassget)
-
+    count(0),
+    countProverka(0),
+    Good(false),
+    liter(26),
+    indexList(_indexList)
 {
 
     this->moveToThread(new QThread()); //Переместили класс GSG в новый поток
-    qDebug () << "Помещаем класс  << RelizProverka >> в поток: " << this->thread();
-
-    QObject::connect(this->thread(),&QThread::started,this,&RelizProverka::process_start);
+    connect(this, &RelizProverka::signal_finished, this->thread(), &QThread::quit);
+    connect(this->thread(),&QThread::started,this,&RelizProverka::process_start);
     this->thread()->start();
-    qDebug () << "Запускаем поток << RelizProverka >> : " << this->thread();
 
-    flag_auto = true; //автоматическая проверка включена
 
+
+    flag_auto = false; //автоматическая проверка включена
+    flag_start_mrk = false;
+
+}
+
+RelizProverka::~RelizProverka()
+{
+    qDebug() << "DELETE RelizProverka";
+    emit signal_finished();
 }
 
 void RelizProverka::SetIdLink(QString GetIdLink)
@@ -45,108 +51,66 @@ void RelizProverka::process_start()
 {
 
 
+    connect(this,&RelizProverka::Work_signal,n6700->n6700,&N6700::Work); //
 
+    connect(this,&RelizProverka::startTimer,n6700,&N6700Model::slot_StartTimer); //
 
-    //   QObject::connect(n6700,&N6700Model::startTimer,this,&RelizProverka::Work,Qt::QueuedConnection);
-    //QObject::connect(n6700,&N6700Model::Work,this,&RelizProverka::Work,Qt::QueuedConnection);
-
-    QObject::connect(this,&RelizProverka::Work_signal,n6700->n6700,&N6700::Work,Qt::QueuedConnection); //,Qt::QueuedConnection
-
-    QObject::connect(this,&RelizProverka::startTimer,n6700,&N6700Model::slot_StartTimer,Qt::QueuedConnection); //,Qt::QueuedConnection
-
-    QObject::connect(this,&RelizProverka::setOutput,n6700,&N6700Model::setOut,Qt::DirectConnection); //
-    QObject::connect(this,&RelizProverka::setVolt,n6700,&N6700Model::setVolt,Qt::DirectConnection); //
-
-
-
-    //  QObject::connect(this,&RelizProverka::endWork_signal,n6700->n6700,&N6700::endWork,Qt::BlockingQueuedConnection);
-
-
-    // QObject::connect(this,&RelizProverka::signal_GoodQML,n6700,&N6700Model::slot_GoodQML);
-    // QObject::connect(this,&RelizProverka::signal_BadQML,n6700,&N6700Model::slot_BadQML);
-
-
-    //    this->timer = new QTimer();
-
-    //    QObject::connect(timer,SIGNAL(timeout()),this,SLOT(time()));
-    //    QObject::connect(this,SIGNAL(startTimer1(int)),timer,SLOT(start(int)),Qt::QueuedConnection);
-    //    QObject::connect(this,&RelizProverka::stopTimer1,timer,&QTimer::stop);
-
-    //    this->timer2 = new QTimer();
-
-    //    QObject::connect(this->timer2,&QTimer::timeout,this,&RelizProverka::time2);
-    //    QObject::connect(this,SIGNAL(startTimer2(int)),this->timer2,SLOT(start(int)));
-    //    QObject::connect(this,&RelizProverka::stopTimer2,this->timer2,&QTimer::stop);
-
-    //QObject::connect(this,&RelizProverka::signal_TimerQML,n6700,&N6700Model::slot_TimerQML);
-
+    connect(this,&RelizProverka::setOutput,n6700,&N6700Model::setOut); //
+    connect(this,&RelizProverka::setVolt,n6700,&N6700Model::setVolt); //
 
     //От QML на запуск других проверок
 
-    //   QObject::connect(n6700,&N6700Model::signal_proverka,this,&RelizProverka::slot_proverka,Qt::QueuedConnection);
+    //   connect(n6700,&N6700Model::signal_proverka,this,&RelizProverka::slot_proverka);
 
 
-    QObject::connect(this,&RelizProverka::signal_StartProverka_1,this,&RelizProverka::proverka_rabotosposobnosti_NP_ID_1);
-    QObject::connect(this,&RelizProverka::signal_StartProverka_2,this,&RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_2);
-    QObject::connect(this,&RelizProverka::signal_StartProverka_3,this,&RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_3);
-    QObject::connect(this,&RelizProverka::signal_StartProverka_4,this,&RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_4);
-    QObject::connect(this,&RelizProverka::signal_StartProverka_5,this,&RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_5);
-    QObject::connect(this,&RelizProverka::signal_StartProverka_6,this,&RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_6);
-    QObject::connect(this,&RelizProverka::signal_StartProverka_7,this,&RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_7);
-    QObject::connect(this,&RelizProverka::signal_StartProverka_8,this,&RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_8);
-    QObject::connect(this,&RelizProverka::signal_StartProverka_9,this,&RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_9);
-    QObject::connect(this,&RelizProverka::signal_StartProverka_10,this,&RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_10);
-
+    connect(this,&RelizProverka::signal_StartProverka_1,this,&RelizProverka::proverka_rabotosposobnosti_NP_ID_1);
+    connect(this,&RelizProverka::signal_StartProverka_2,this,&RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_2);
+    connect(this,&RelizProverka::signal_StartProverka_3,this,&RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_3);
+    connect(this,&RelizProverka::signal_StartProverka_4,this,&RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_4);
+    connect(this,&RelizProverka::signal_StartProverka_5,this,&RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_5);
+    connect(this,&RelizProverka::signal_StartProverka_6,this,&RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_6);
+    connect(this,&RelizProverka::signal_StartProverka_7,this,&RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_7);
+    connect(this,&RelizProverka::signal_StartProverka_8,this,&RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_8);
+    connect(this,&RelizProverka::signal_StartProverka_9,this,&RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_9);
+    connect(this,&RelizProverka::signal_StartProverka_10,this,&RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_10);
 
 
     sem = new QSemaphore();
     mut = new QMutex();
 
-
-
-    //поиск id прибора в Бд
-    QSqlQueryModel* SQL_id;
-
-    qDebug () <<"NP :" +this->Name;
-
-
-    SQL_id  = gsg->BD->zaprosQueryModel("SELECT * FROM Serial WHERE Serial like '"+this->Name+"'",this->index);
-
-
-
-    for(int i=0;i< SQL_id->rowCount();i++)
-    {
-        Id = SQL_id->data(SQL_id->index(i,0), Qt::EditRole).toString();
-
-        qDebug () <<"Id : " << Id;
-    }
-
-    qDebug () <<"NP :" +this->Name << " Id: " << this->Id;
-
-
 }
 
 
 
-void RelizProverka::process_start_timer()
+//void RelizProverka::process_start_timer()
+//{
+//    connect(timer,SIGNAL(timeout()),this,SLOT(time()));
+//    connect(this,SIGNAL(startTimer1(int)),timer,SLOT(start(int)));
+//    connect(this,&RelizProverka::stopTimer1,timer,&QTimer::stop);
+//}
+
+
+
+//void RelizProverka::process_start_timer2()
+//{
+//    connect(timer2,SIGNAL(timeout()),this,SLOT(time2()));
+//    connect(this,SIGNAL(startTimer2(int)),timer2,SLOT(start(int)));
+//    connect(this,&RelizProverka::stopTimer2,timer,&QTimer::stop);
+//}
+
+
+void RelizProverka::waitMRKLoad()
 {
+    emit signal_qmlText("Ждем запуска приемника");
 
+    this->port->PortNew->flag_waitloadingMRK = true;
+    this->port->PortNew->flag_waitloadingMRK_proverka = true;
+    this->port->PortNew->flag_end_MRK = false;
+    this->port->slot_Work();
 
-    QObject::connect(timer,SIGNAL(timeout()),this,SLOT(time()));
-    QObject::connect(this,SIGNAL(startTimer1(int)),timer,SLOT(start(int)));
-    QObject::connect(this,&RelizProverka::stopTimer1,timer,&QTimer::stop);
-}
-
-
-
-void RelizProverka::process_start_timer2()
-{
-
-
-    QObject::connect(timer2,SIGNAL(timeout()),this,SLOT(time2()));
-    QObject::connect(this,SIGNAL(startTimer2(int)),timer2,SLOT(start(int)));
-    QObject::connect(this,&RelizProverka::stopTimer2,timer,&QTimer::stop);
-
+    qDebug() << "Wait start mrk : index = " << index;
+    //Ждем загрузки приемников
+    sem->acquire();
 }
 
 
@@ -155,12 +119,13 @@ void RelizProverka::process_start_timer2()
 void RelizProverka::proverka_rabotosposobnosti_NP_ID_1()
 {
 
-    proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_10();
-    return;
+//    proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_2();
+//    return;
 
 
-    // На всякий случай зануление счета проверок ( это 1 проверка)
-    countProverka = 0;
+    qDebug () << "Start proverka_rabotosposobnosti_NP_ID_1 proverka : " << index;
+
+
     // Подсчет проверок
     countProverka = 1;  //№1
 
@@ -170,47 +135,65 @@ void RelizProverka::proverka_rabotosposobnosti_NP_ID_1()
     emit setVolt(QString::number(index),"5");
     //Подача питания на приемник
     emit setOutput(QString::number(index),true);
+
+    //Ждем загрузки приемников
+    waitMRKLoad();
+
     //Флаг работы, приемник включен
     job = true;
-    //Сигнал начала запуска таймера для проверки (3.30 минут)
-    emit startWork();
-    qDebug () << "Запустили 1 проверку";
+
+    if(flag_start_mrk)
+    {
+        //Сигнал начала запуска таймера для проверки (3.30 минут)
+        emit startWork();
+    }
+    else
+    {
+        Good = flag_start_mrk;
+    }
+
+    qDebug () << "Start 1 proverka";
     //Время начала проверки для записи в БД
     stay = QDateTime::currentDateTime();
-    qDebug () << "Проверка Начата  1 ждем = " << sem->available();
-    qDebug () << "Дата старта: " << start.toString("dd.MM.yyyy  hh:mm:ss");
+    qDebug () << "proverka Start  1 wait : index = " << index;
+    qDebug () << "Data Start: " << start.toString("dd.MM.yyyy  hh:mm:ss");
     //Запись в БД начала проверки
-    gsg->BD->zaprosQueryModel("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
 
-    screenClass->capture("Старт_" + QString::number(countProverka) + "_" +this->Name +".jpg");
+    emit sendZaprozToBD("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
 
-    //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
-    sem->acquire();
+    if(flag_start_mrk)
+    {
+        //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
+        sem->acquire();
+    }
+
     //По окончанию работы проверки переводим флаг работы в ложь, для показания того, что приемник прошел проверку и может быть выключен
     job = false;
-    qDebug () << "Проверка Прошла = " << sem->available();
+    qDebug () << "Finish proverka : index = " << index;
+
     //Флаг показывающий прошел ли приемник данную проверку или нет
     flag_good_1 = Good;
 
     if(flag_good_1)
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = 'Соответствует'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                              "Sootv = 'Соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
     }
     else
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = 'Не соответствует'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                              "Sootv = 'Не соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
     }
 
-   screenClass->capture("Конец_" + QString::number(countProverka) + "_" +this->Name +".jpg");
 
 
     //Сигнал выключения питания приемника по окончанию проверки
     emit setOutput(QString::number(index),false);
     //Сигнал завершения проверки
-    emit signal_EndProverka(countProverka);
-    qDebug () << "Ждем остальные приемники = " << sem->available();
+    emit signal_EndProverka(countProverka,indexList);
+
+    qDebug () << "Wait all mrk : index = " << index;
+
     //Остановка потока для того чтоб дождаться остальные приемники для перехода на следующую првоерку
     sem->acquire();
 
@@ -229,30 +212,51 @@ void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_2()  
     // Подсчет проверок
     countProverka = 2;  //№2
 
+    qDebug() << "Start proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_2 proverka : index = " << index;
+
+
     emit signal_StartProverkaIndex(QString::number(countProverka));
+
     //Cигнал для установки напряжения на источнике питания на том блоке к которому подсоединен приемник
-    emit setVolt(QString::number(index),"4.75");
+    emit setVolt(QString::number(index),"4.74");
     //Подача питания на приемник
     emit setOutput(QString::number(index),true);
+
+    //Ждем загрузки приемников
+    waitMRKLoad();
+
+
     //Флаг работы, приемник включен
     job = true;
     //Очитска листа с результатоми этапов 2 проверки по разным напряжениями питания
     list_flag_good_2.clear();
-    //Сигнал начала запуска таймера для проверки (3.30 минут)
-    emit startWork();
-    qDebug () << "Запустили 2 проверку";
-    qDebug () << "Проверка Начата  2 часть 1 ждем = " << sem->available();
+
+    if(flag_start_mrk)
+    {
+        //Сигнал начала запуска таймера для проверки (3.30 минут)
+        emit startWork();
+    }
+    else
+    {
+        Good = flag_start_mrk;
+    }
+
+    qDebug () << "Start 2 proverka";
+    qDebug () << "Proverka begin is  2  Wait : index =" << index;
     //Время начала проверки для записи в БД
     stay = QDateTime::currentDateTime();
     //Запись в БД начала проверки
-    gsg->BD->zaprosQueryModel("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
-    //Проверка 2 часть 1
-    proverka2_part = 1;
-    //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
-    sem->acquire();
+    emit sendZaprozToBD("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
+
+    if(flag_start_mrk)
+    {
+        //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
+        sem->acquire();
+    }
+
     //По окончанию работы проверки переводим флаг работы в ложь, для показания того, что приемник прошел проверку и может быть выключен
     job = false;
-    qDebug () << "Проверка 2 часть 1 Прошла = " << sem->available();
+    qDebug () << "Proverka 2 Finish : index =" << index;
     //Флаг показывающий прошел ли приемник данную проверку или нет
     flag_good_2 = Good;
     //Добавление результата в лист
@@ -260,20 +264,127 @@ void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_2()  
 
     if(flag_good_2)
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = 'Соответствует'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        switch (index) {
+        case 1:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_1+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 2:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_2+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 3:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_3+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 4:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_4+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 5:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_1+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 6:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_2+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 7:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_3+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 8:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_4+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+
+        }
+
     }
     else
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = 'Не соответствует'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        // emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+        //                                                                                                                             "Sootv = 'Не соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
+        switch (index) {
+        case 1:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_1+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 2:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_2+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 3:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_3+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 4:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_4+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 5:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_1+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 6:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_2+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 7:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_3+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 8:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_4+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+
+        }
     }
+
+
+    //Сигнал завершения проверки
+    emit signal_EndProverka(countProverka,indexList);
+    qDebug () << "Wait all mrk : index =" << index;
 
     //Сигнал выключения питания приемника по окончанию проверки
     emit setOutput(QString::number(index),false);
-    //Сигнал завершения проверки
-    emit signal_EndProverka(countProverka);
-    qDebug () << "Ждем остальные приемники = " << sem->available();
+
+
+
     //Остановка потока для того чтоб дождаться остальные приемники для перехода на следующую првоерку
     sem->acquire();
 
@@ -294,30 +405,49 @@ void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_3()
     // Подсчет проверок
     countProverka = 3;  //№3
 
+    qDebug() << "Start proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_3 proverka : index = " << index;
+
+
     emit signal_StartProverkaIndex(QString::number(countProverka));
     //Cигнал для установки напряжения на источнике питания на том блоке к которому подсоединен приемник
-    emit setVolt(QString::number(index),"5.25");
+    emit setVolt(QString::number(index),"5.24");
     //Подача питания на приемник
     emit setOutput(QString::number(index),true);
+
+    //Ждем загрузки приемников
+    waitMRKLoad();
+
+
     //Флаг работы, приемник включен
     job = true;
     //Очитска листа с результатоми этапов 2 проверки по разным напряжениями питания
     list_flag_good_3.clear();
-    //Сигнал начала запуска таймера для проверки (3.30 минут)
-    emit startWork();
-    qDebug () << "Запустили 3 проверку";
+
+    if(flag_start_mrk)
+    {
+        //Сигнал начала запуска таймера для проверки (3.30 минут)
+        emit startWork();
+    }
+    else
+    {
+        Good =  flag_start_mrk;
+    }
+
+    qDebug () << "Start 3 proverka";
     //Время начала проверки для записи в БД
     stay = QDateTime::currentDateTime();
     //Запись в БД начала проверки
-    gsg->BD->zaprosQueryModel("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
-    qDebug () << "Проверка Начата  3 часть 1 ждем = " << sem->available();
-    //Проверка 3 часть 1
-    proverka2_part = 1;
-    //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
-    sem->acquire();
+    emit sendZaprozToBD("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
+    qDebug () << "proverka begin  3 wait : index =" << index;
+
+    if(flag_start_mrk)
+    {
+        //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
+        sem->acquire();
+    }
     //По окончанию работы проверки переводим флаг работы в ложь, для показания того, что приемник прошел проверку и может быть выключен
     job = false;
-    qDebug () << "Проверка 3 часть 1 Прошла = " << sem->available();
+    qDebug () << "Proverka 3 part 1 is Finish : index =" << index;
     //Флаг показывающий прошел ли приемник данную проверку или нет
     flag_good_3 = Good;
     //Добавление результата в лист
@@ -325,26 +455,136 @@ void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_3()
 
     if(flag_good_3)
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = 'Соответствует'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        //          emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+        //                                                                                                                                     "Sootv = 'Соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
+        switch (index) {
+        case 1:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_1+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 2:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_2+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 3:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_3+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 4:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_4+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 5:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_1+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 6:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_2+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 7:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_3+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 8:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_4+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+
+        }
+
     }
     else
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = 'Не соответствует'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        // emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+        //                                                                                                                             "Sootv = 'Не соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
+        switch (index) {
+        case 1:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_1+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 2:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_2+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 3:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_3+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 4:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_4+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 5:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_1+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 6:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_2+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 7:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_3+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 8:
+        {
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+n6700->n6700->v_4+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+
+        }
+
     }
 
     //Сигнал выключения питания приемника по окончанию проверки
     emit setOutput(QString::number(index),false);
     //Сигнал завершения проверки
-    emit signal_EndProverka(countProverka);
-    qDebug () << "Ждем остальные приемники = " << sem->available();
+    emit signal_EndProverka(countProverka,indexList);
+    qDebug () << "Wait all mrk : index =" << index;
+
+
     //Остановка потока для того чтоб дождаться остальные приемники для перехода на следующую првоерку
     sem->acquire();
 
     if(flag_auto)
     {
         proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_4();
+
+        //proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_10();
     }
 
 }
@@ -358,50 +598,227 @@ void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_4()
     // Подсчет проверок
     countProverka = 4;  //№4
 
+    qDebug() << "Start proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_4 proverka : index = " << index;
+
     emit signal_StartProverkaIndex(QString::number(countProverka));
     //Cигнал для установки напряжения на источнике питания на том блоке к которому подсоединен приемник
     emit setVolt(QString::number(index),"5");
     //Подача питания на приемник
     emit setOutput(QString::number(index),true);
+
+    //Ждем загрузки приемников
+    waitMRKLoad();
+
+
     //Флаг работы, приемник включен
     job = true;
     //Время начала проверки для записи в БД
     stay = QDateTime::currentDateTime();
     //Запись в БД начала проверки
-    gsg->BD->zaprosQueryModel("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
-    //Сигнал начала запуска таймера для проверки (3.30 минут)
-    emit startWork();
+    emit sendZaprozToBD("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
+
+
+
+    if(flag_start_mrk)
+    {
+        //Сигнал начала запуска таймера для проверки (3.30 минут)
+        emit startWork();
+    }
+    else
+    {
+        Good = flag_start_mrk;
+    }
     qDebug () << "Запустили 4 проверку";
     qDebug () << "Проверка Начата  4 = " << sem->available();
-    //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
-    sem->acquire();
+    if(flag_start_mrk)
+    {
+        //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
+        sem->acquire();
+    }
+
     //По окончанию работы проверки переводим флаг работы в ложь, для показания того, что приемник прошел проверку и может быть выключен
     job = false;
     qDebug () << "Проверка 4  Прошла = " << sem->available();
     //Флаг показывающий прошел ли приемник данную проверку или нет
     flag_good_4 = Good;
 
+    double p = 0;
+
     if(flag_good_4)
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = 'Соответствует'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        //emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+        //                                                                                                                            "Sootv = 'Соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
+        switch (index) {
+        case 1:
+        {
+            p = n6700->n6700->v_1.toDouble()*n6700->n6700->i_1.toDouble();
+
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+QString::number(p,'\0',3)+" Вт'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 2:
+        {
+            p = n6700->n6700->v_2.toDouble()*n6700->n6700->i_2.toDouble();
+
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+QString::number(p,'\0',3)+" Вт'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 3:
+        {
+            p = n6700->n6700->v_3.toDouble()*n6700->n6700->i_3.toDouble();
+
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+QString::number(p,'\0',3)+" Вт'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 4:
+        {
+            p = n6700->n6700->v_4.toDouble()*n6700->n6700->i_4.toDouble();
+
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+QString::number(p,'\0',3)+" Вт'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 5:
+        {
+            p = n6700->n6700->v_1.toDouble()*n6700->n6700->i_1.toDouble();
+
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+QString::number(p,'\0',3)+" Вт'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 6:
+        {
+            p = n6700->n6700->v_2.toDouble()*n6700->n6700->i_2.toDouble();
+
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+QString::number(p,'\0',3)+" Вт'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 7:
+        {
+            p = n6700->n6700->v_3.toDouble()*n6700->n6700->i_3.toDouble();
+
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+QString::number(p,'\0',3)+" Вт'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 8:
+        {
+            p = n6700->n6700->v_4.toDouble()*n6700->n6700->i_4.toDouble();
+
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+QString::number(p,'\0',3)+" Вт'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+
+        }
+
     }
     else
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = 'Не соответствует'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        // emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+        //                                                                                                                             "Sootv = 'Не соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
+        switch (index) {
+        case 1:
+        {
+            p = n6700->n6700->v_1.toDouble()*n6700->n6700->i_1.toDouble();
+
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+QString::number(p,'\0',3)+" Вт'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 2:
+        {
+            p = n6700->n6700->v_2.toDouble()*n6700->n6700->i_2.toDouble();
+
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+QString::number(p,'\0',3)+" Вт'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 3:
+        {
+            p = n6700->n6700->v_3.toDouble()*n6700->n6700->i_3.toDouble();
+
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+QString::number(p,'\0',3)+" Вт'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 4:
+        {
+            p = n6700->n6700->v_4.toDouble()*n6700->n6700->i_4.toDouble();
+
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+QString::number(p,'\0',3)+" Вт'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 5:
+        {
+            p = n6700->n6700->v_1.toDouble()*n6700->n6700->i_1.toDouble();
+
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+QString::number(p,'\0',3)+" Вт'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 6:
+        {
+            p = n6700->n6700->v_2.toDouble()*n6700->n6700->i_2.toDouble();
+
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+QString::number(p,'\0',3)+" Вт'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 7:
+        {
+            p = n6700->n6700->v_3.toDouble()*n6700->n6700->i_3.toDouble();
+
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+QString::number(p,'\0',3)+" Вт'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+        case 8:
+        {
+            p = n6700->n6700->v_4.toDouble()*n6700->n6700->i_4.toDouble();
+
+            emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                                  "Sootv = '"+QString::number(p,'\0',3)+" Вт'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            break;
+        }
+
+        }
+    }
+
+    if(p <=15.0)
+    {
+        qDebug() <<"GOOD p = " << p;
+        flag_good_4 = true;
+    }
+    else
+    {
+        qDebug() <<"BEAD p = " << p;
+
+        flag_good_4 = false;
     }
 
     //Сигнал выключения питания приемника по окончанию проверки
     emit setOutput(QString::number(index),false);
     //Сигнал завершения проверки
-    emit signal_EndProverka(countProverka);
-    qDebug () << "Ждем остальные приемники = " << sem->available();
+    emit signal_EndProverka(countProverka,indexList);
+    qDebug () << "Wait all mrk : index =" << index;
+
+
     //Остановка потока для того чтоб дождаться остальные приемники для перехода на следующую првоерку
     sem->acquire();
+
     if(flag_auto)
     {
         proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_5();
+
+       // proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_6();
     }
 
 }
@@ -415,34 +832,54 @@ void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_5()
     // Подсчет проверок
     countProverka = 5;  //№5
 
+    qDebug() << "Start proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_5 proverka : index = " << index;
+
+    //  liter = 151; //  убрать поставить последний GPS (на время потом убрать)
+
     emit signal_StartProverkaIndex(QString::number(countProverka));
+
     //Cигнал на запуск имитации 1 спутника на имитаторе
     emit signal_startGen();
-    qDebug () << "Запустили 5 проверку";
+
+    qDebug () << "Start 5 proverka";
     //Время начала проверки для записи в БД
     stay = QDateTime::currentDateTime();
     //Запись в БД начала проверки
-    gsg->BD->zaprosQueryModel("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
+    emit sendZaprozToBD("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
     //Часть проверки (зануление, инициализация)
     proverka5_part = 0;
     //Отчистка листа результатов для данной проверки
     list_flag_good_5.clear();
 
+
+    emit signal_qmlText("Загрузка имитатора");
     //Семафор для остановки потока для того чтоб подождать пока не запуститься имитатор
     sem->acquire();
 
 
+    //  proverka5_part = 35; //убрать
+
+
+
+
+    // for(int i = 129; i <= 151;i++) //убрал G24 так как на имитаторе не ставится. (151)  26
+
     //Цикол для проверки чувствительности по ГЛОНАСС установка литер от -7 до 0 и проверка их
+    // for(int i = 26; i <= 151;i++) //убрал G24 так как на имитаторе не ставится. (151)  26
+    //for(int i = 129; i <= 151;i++) //убрал G24 так как на имитаторе не ставится. (151)  26
+    //  for(int i = 151; i <= 151;i++) //убрал G24 так как на имитаторе не ставится. (151)  26
     for(int i = 26; i <= 151;i++) //убрал G24 так как на имитаторе не ставится. (151)  26
     {
 
         qDebug() << "First:  I = " << i << " Litrea = " << liter;
         //Добавление части проверки
         proverka5_part++;
+
         //Установка литеры
         liter = i;
 
         qDebug() << "Second: I = " <<    i << " Litrea = " << liter;
+        qDebug() << "proverka5_part: " << proverka5_part << " : " << index;
 
         if(i == 39)
         {
@@ -456,65 +893,100 @@ void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_5()
             liter = i;
         }
 
+        //Cигнал для установки напряжения на источнике питания на том блоке к которому подсоединен приемник
+        emit setVolt(QString::number(index),"5");
         //Подача питания на приемник
         emit setOutput(QString::number(index),true);
+
+        //Ждем загрузки приемников
+        waitMRKLoad();
+
         //Флаг работы, приемник включен
         job = true;
-        //Сигнал начала запуска таймера для проверки (3.30 минут)
-        emit startWork_liters();
-        qDebug () << "Проверка Начата  5: литера № " << (i-32);
-        //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
-        sem->acquire();
+
+        if(flag_start_mrk)
+        {
+            //Сигнал начала запуска таймера для проверки (3.30 минут)
+            emit startWork_liters();
+        }
+        else
+        {
+            Good = flag_start_mrk;
+        }
+
+        qDebug () << "Proverka Begin  5: liters № " << (i-32);
+        if(flag_start_mrk)
+        {
+            //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
+            sem->acquire();
+        }
         //По окончанию работы проверки переводим флаг работы в ложь, для показания того, что приемник прошел проверку и может быть выключен
         job = false;
-        qDebug () << "Проверка 5: литера № "  << (i-32);
+        qDebug () << "Proverka 5: liters № "  << (i-32);
         //Флаг показывающий прошел ли приемник данную проверку или нет
         flag_good_5 = Good;
         //Добавление результата в лист
         list_flag_good_5.append(flag_good_5);
+
         qDebug () <<" Finish = " << this->Name << "Id: " << Id << " Date_Stay = " << stay_liter.toString("dd.MM.yyyy  hh:mm:ss");
 
         if(flag_good_5)
         {
-            gsg->BD->zaprosQueryModel("UPDATE Liter SET Sootv = 'Соответствует'"
-                                      " WHERE Date = '"+stay_liter.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            emit sendZaprozToBD("UPDATE Liter SET Sootv = 'Соотв.'"
+                                " WHERE Date = '"+stay_liter.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
         }
         else
         {
-            gsg->BD->zaprosQueryModel("UPDATE Liter SET Sootv = 'Не соответствует'"
-                                      " WHERE Date = '"+stay_liter.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+            emit sendZaprozToBD("UPDATE Liter SET Sootv = 'Не соотв.'"
+                                " WHERE Date = '"+stay_liter.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
         }
 
         //Сигнал выключения питания приемника по окончанию проверки
         emit setOutput(QString::number(index),false);
         //Сигнал завершения проверки
-        emit signal_EndProverka(countProverka);
-        qDebug () << "Ждем остальные приемники = " << sem->available();
+        emit signal_EndProverka(countProverka,indexList);
+        qDebug () << "Wait all np : index " << index;
+
         //Остановка потока для того чтоб дождаться остальные приемники для перехода на следующую првоерку
+        qDebug () << "Np = " << index;
         sem->acquire();
 
     }
 
-    qDebug () << "Конец проверки на литеры = " << sem->available() << "data: " << stay_liter.toString("dd.MM.yyyy  hh:mm:ss");
+    qDebug () << "END proverki on the liters = " << sem->available() << "data: " << stay_liter.toString("dd.MM.yyyy  hh:mm:ss");
 
+    bool flagGood = false;
 
-
-    QSqlQueryModel* SQL_sootv;
-
-    SQL_sootv = gsg->BD->zaprosQueryModel("SELECT Sootv,Id FROM Liter WHERE Sootv LIKE 'Не соответствует' AND  IdLink LIKE '"+IdLink+"' ");
-
-    if(SQL_sootv->rowCount() > 0)
+    for (auto n : list_flag_good_5)
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = 'Не соответствует'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        if(n == false)
+        {
+            break;
+        }
+        else
+        {
+            flagGood = true;
+        }
+    }
+
+
+    if(flagGood)
+    {
+        emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                              "Sootv = 'Соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
     }
     else
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = 'Соответствует'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                              "Sootv = 'Не соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
     }
 
     emit signal_IndexProverka(QString::number(countProverka));
+
+
+    //    //Остановка потока для того чтоб дождаться остальные приемники для перехода на следующую првоерку
+    //sem->acquire();
 
 
     if(flag_auto)
@@ -528,56 +1000,69 @@ void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_5()
 
 void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_6()
 {
-    emit signal_startImitator();
+
 
     countProverka = 6; //№6
 
-    //Cигнал для установки напряжения на источнике питания на том блоке к которому подсоединен приемник
-    emit setVolt(QString::number(index),"5");
-    //Подача питания на приемник
-    emit setOutput(QString::number(index),true);
+    qDebug() << "Start proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_6 proverka : index = " << index;
+
+    QList<bool> listBool;
+
+
     //Флаг работы, приемник включен
+    job = true;
+    flag_300MGH_6Proverka = false;
 
-
-
+    //Запустить переключение проверки (QML)
     emit signal_StartProverkaIndex(QString::number(countProverka));
+
+    emit signal_beginOSProv(index);
+    //ждем запуска последовательной проверки
+    sem->acquire();
+
     stay = QDateTime::currentDateTime();
-    qDebug () << "Проверка 6 Начата  ждем";
-    qDebug () << "Дата старта: " << start.toString("dd.MM.yyyy  hh:mm:ss");
+    qDebug () << "Proverka 6 start  WAIT";
+    qDebug () << "Data start: " << start.toString("dd.MM.yyyy  hh:mm:ss");
+
     //Запись в БД начала проверки
-    gsg->BD->zaprosQueryModel("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
-    //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
+    emit sendZaprozToBD("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
 
-    //flag_good_6 = true;
 
-    gsg->tp->slot_comand5_Connect_10MG(*QString::number(index).toUtf8().data());
+    os->os->flag_change_seitings = true;
+    os->slot_Change_Seitings();
 
-    gsg->tp->slot_comand6_Connect_Vx2_10_ext();
+    tp->slot_comand7_Set_zatyxanie_10(static_cast<char>(0x9B),index);
+    sem->acquire();
 
-    //Sleep(5000);
+
+    tp->slot_comand6_Connect_Vx2_10_ext(index);
+    sem->acquire();
+
+
+    tp->slot_comand5_Connect_10MG(0x01,index); //(*QString::number(index).toUtf8().data()-0x30);
+    sem->acquire();
 
 
     for(int i=0x9B; i > 0; i--)
     {
 
-        qDebug() << (UINT)i;
+        //qDebug() << (UINT)i;
 
-        gsg->tp->slot_comand7_Set_zatyxanie_10(i);
+        tp->slot_comand7_Set_zatyxanie_10(static_cast<char>(i),index);
+        sem->acquire();
 
-        //Sleep(5000);
-
-
-        QString VMAX = gsg->os->os->getVMAX("CHANnel2");
+        QString VMAX = os->os->getVRMS("CHANnel2");
 
         qDebug () <<"VMAX = " << VMAX;
 
         qDebug () <<"VMAX.toDouble() = " << VMAX.toDouble();
 
-        if(VMAX.toDouble() >= 0.2  ) //мили вольты
+        if(VMAX.toDouble() >= 0.2 &&  VMAX.toDouble() <= 0.23 ) //мили вольты
         {
             flag_good_6 = true;
+            listBool.append(flag_good_6);
 
-            qDebug () <<"[VMAX.toDouble() >= 0.2  ] = " << flag_good_6;
+            qDebug () <<"[VMAX.toDouble() >= 0.2 &&  VMAX.toDouble() <= 0.23  ] = " << flag_good_6;
 
             break;
 
@@ -585,25 +1070,235 @@ void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_6()
         else
         {
             flag_good_6 = false;
+
+            if(( VMAX.toDouble() > 0.3 ) || (VMAX.toDouble() == 0.0) )
+            {
+                listBool.append(flag_good_6);
+                break;
+            }
+
         }
-
-
     }
 
 
-    if(flag_good_6)
+    tp->slot_comand8_Connect_10_in(0x01,index);
+    sem->acquire();
+
+    tp->slot_comand3_Connect_Vx2_1C(index);
+    sem->acquire();
+
+    tp->slot_comand5_Connect_10MG(*QString::number(index).toUtf8().data()-0x30,index);
+    sem->acquire();
+
+
+    //Cигнал для установки напряжения на источнике питания на том блоке к которому подсоединен приемник
+    emit setVolt(QString::number(index),"5");
+    //Подача питания на приемник
+    emit setOutput(QString::number(index),true);
+    //Ждем загрузки приемников
+    waitMRKLoad();
+
+    if(flag_start_mrk)
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = 'Соответствует'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        //Сигнал начала запуска таймера для проверки (3.30 минут)
+        emit startWork();
+        qDebug () << "Start find spytniks 6 proverki : index =  " << index;
+        //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
+        sem->acquire();
     }
     else
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = 'Не соответствует'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        Good  = flag_start_mrk;
+    }
+
+    //По окончанию работы проверки переводим флаг работы в ложь, для показания того, что приемник прошел проверку и может быть выключен
+    job = false;
+    qDebug () << "Proverka find spytniks 6  END : index =  " << index;
+
+    //Флаг показывающий прошел ли приемник данную проверку или нет
+    flag_good_6 = Good;
+
+    listBool.append(flag_good_6);
+
+
+//    if(flag_good_6)
+//    {
+//        emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+//                                                                                                                              "Sootv = 'Соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+//    }
+//    else
+//    {
+//        emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+//                                                                                                                              "Sootv = 'Не соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+//    }
+
+    //Сигнал выключения питания приемника по окончанию проверки
+    emit setOutput(QString::number(index),false);
+
+    tp->slot_comand8_Connect_10_in(*QString::number(index).toUtf8().data()-0x30,index);
+    sem->acquire();
+
+    //Сигнал завершения проверки
+    emit signal_EndProverka(countProverka,indexList);
+    sem->acquire();
+
+    qDebug () << "END part 1 proverka 6 : index =" << index;
+
+    flag_300MGH_6Proverka = true;
+
+    emit signal_StartProverkaIndex(QString::number(countProverka));
+
+    ///////////////////////////////////////////////////////////////
+
+    //Флаг работы, приемник включен
+    job = true;
+
+    os->os->flag_change_seitings = true;
+    os->slot_Change_Seitings();
+
+    tp->slot_comand7_Set_zatyxanie_10(static_cast<char>(0x9B),index);
+    sem->acquire();
+
+
+    tp->slot_comand6_Connect_Vx2_10_ext(index);
+    sem->acquire();
+
+    tp->slot_comand5_Connect_10MG(0x01,index); //(*QString::number(index).toUtf8().data()-0x30);
+    sem->acquire();
+
+    for(int i=0x9B; i > 0; i--)
+    {
+
+        //qDebug() << (UINT)i;
+
+        tp->slot_comand7_Set_zatyxanie_10(static_cast<char>(i),index);
+        sem->acquire();
+
+        QString VMAX = os->os->getVRMS("CHANnel2");
+
+        qDebug () <<"VMAX = " << VMAX;
+
+        qDebug () <<"VMAX.toDouble() = " << VMAX.toDouble();
+
+        if(VMAX.toDouble() >= 0.3 &&  VMAX.toDouble() <= 0.33 ) //мили вольты
+        {
+            flag_good_6 = true;
+            listBool.append(flag_good_6);
+
+            qDebug () <<"[VMAX.toDouble() >= 0.3 &&  VMAX.toDouble() <= 0.33  ] = " << flag_good_6;
+
+            break;
+
+        }
+        else
+        {
+            flag_good_6 = false;
+
+            if(( VMAX.toDouble() > 0.33 ) || (VMAX.toDouble() == 0.0) )
+            {
+                listBool.append(flag_good_6);
+                break;
+            }
+
+        }
     }
 
 
-    Sleep(120000);
+    tp->slot_comand8_Connect_10_in(0x01,index);
+    sem->acquire();
+
+
+    tp->slot_comand3_Connect_Vx2_1C(index);
+    sem->acquire();
+
+    tp->slot_comand5_Connect_10MG(*QString::number(index).toUtf8().data()-0x30,index);
+    sem->acquire();
+
+    //Cигнал для установки напряжения на источнике питания на том блоке к которому подсоединен приемник
+    emit setVolt(QString::number(index),"5");
+    //Подача питания на приемник
+    emit setOutput(QString::number(index),true);
+    //Ждем загрузки приемников
+    waitMRKLoad();
+
+
+    // emit signal_startImitator();
+
+    //Пересмотреть нужно убрать запись в бд так как их 2
+   // stay = QDateTime::currentDateTime();
+    qDebug () << "Проверка 6 часть 2 Начата  ждем";
+   // qDebug () << "Дата старта: " << start.toString("dd.MM.yyyy  hh:mm:ss");
+
+    //Запись в БД начала проверки
+//    emit sendZaprozToBD("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
+    //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
+
+
+    if(flag_start_mrk)
+    {
+        //Сигнал начала запуска таймера для проверки (3.30 минут)
+        emit startWork();
+
+        qDebug () << "Start find spytniks 6 proverki : index =  " << index;
+        //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
+        sem->acquire();
+    }
+    else
+    {
+        Good  = flag_start_mrk;
+    }
+
+
+    //По окончанию работы проверки переводим флаг работы в ложь, для показания того, что приемник прошел проверку и может быть выключен
+    job = false;
+    qDebug () << "Proverka find spytniks 6  END : index =  " << index;
+
+    //Флаг показывающий прошел ли приемник данную проверку или нет
+    flag_good_6 = Good;
+
+    listBool.append(flag_good_6);
+
+
+    //Если на этапе включения и выставления 10 Мгц от внешнего генератора не прошло
+    for(int i=0;i < listBool.count();i++ )
+    {
+        if(listBool[i] == false)
+        {
+            flag_good_6 = false; //првоерка не прошла
+        }
+    }
+
+
+
+     //записать один раз в базу результат выполнения 6 проверки
+    if(flag_good_6)
+    {
+        emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                              "Sootv = 'Соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+    }
+    else
+    {
+        emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                              "Sootv = 'Не соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
+    }
+
+    //Сигнал выключения питания приемника по окончанию проверки
+    emit setOutput(QString::number(index),false);
+
+    tp->slot_comand8_Connect_10_in(*QString::number(index).toUtf8().data()-0x30,index);
+    sem->acquire();
+
+    //Сигнал завершения проверки
+    emit signal_EndProverka(countProverka,indexList);
+
+    qDebug () << "Wait all mrk : index = " << index;
+    //Остановка потока для того чтоб дождаться остальные приемники для перехода на следующую првоерку
+
+    emit signal_slot_StartProverka_Os(index,indexList);
+    sem->acquire();
+
+
 
     if(flag_auto)
     {
@@ -617,79 +1312,101 @@ void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_6()
 void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_7()
 {
     countProverka = 7;  //№7
+
+    qDebug() << "Start proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_7 proverka : index = " << index;
+
+
     emit signal_StartProverkaIndex(QString::number(countProverka));
-    //запускаем приемник (падали ток)
+
+    //Cигнал для установки напряжения на источнике питания на том блоке к которому подсоединен приемник
+    emit setVolt(QString::number(index),"5");
+    //запускаем приемник
     emit setOutput(QString::number(index),true);
+    //Ждем загрузки приемников
+    waitMRKLoad();
+
+
+    //утсновить настройки осцилографа
+    os->os->flag_change_seitings = true;
+    os->slot_Change_Seitings();
 
     job = true;
 
     emit startWork_Os();
 
-    qDebug () << "Запустили 7 проверку";
+    qDebug () << "Start 7 proverka : index = " << index;
 
     stay = QDateTime::currentDateTime();
-    qDebug () << "Проверка 7 Начата  ждем";
-    qDebug () << "Дата старта: " << start.toString("dd.MM.yyyy  hh:mm:ss");
+    qDebug () << "Proverka 7 Begin  wait : index = " << index;
+    qDebug () << "Data start: " << start.toString("dd.MM.yyyy  hh:mm:ss") <<" : index = " << index;
     //Запись в БД начала проверки
-    gsg->BD->zaprosQueryModel("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
+    emit sendZaprozToBD("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
 
     //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
-    qDebug () << "Проверка Начата  7 = " << sem->available();
-
+    qDebug () << "Proverka Begin  7 : index = " << index;
     sem->acquire();
-
     job = false;
 
-    qDebug () << "Номер НП = " << *QString::number(index).toUtf8().data();
-
-    gsg->tp->slot_comand2_Connect_Vx1_1C(*QString::number(index).toUtf8().data());
-
-    Sleep(1000);
+    emit signal_beginOSProv_7(index);
+    sem->acquire();
 
 
-    QString VMAX = gsg->os->os->getVMAX("CHANnel2");
+    qDebug () << "Number Np = " << *QString::number(index).toUtf8().data();
 
-    qDebug () <<"VMAX = " << VMAX;
+    tp->slot_comand1_Connect_Vx2_10(*QString::number(index).toUtf8().data()-0x30,index);
+    sem->acquire();
 
-    qDebug () <<"VMAX.toDouble() = " << VMAX.toDouble();
+
+    QString VMAX =  os->os->getVRMS("CHANnel2");
+
+    qDebug () <<"VMAX = " << VMAX << " : index = " << index;
+
+    qDebug () <<"VMAX.toDouble() = " << VMAX.toDouble() << " : index = " << index;
 
     if(VMAX.toDouble() >= 0.2  && VMAX.toDouble() <= 0.3  ) //мили вольты
     {
         flag_good_7 = true;
 
-        qDebug () <<"[VMAX.toDouble() >= 0.2  && VMAX.toDouble() <= 0.3 ] = " << flag_good_7;
+        qDebug () <<"[VMAX.toDouble() >= 0.2  && VMAX.toDouble() <= 0.3 ] = " << flag_good_7 << " : index = " << index;
 
     }
     else
     {
         flag_good_7 = false;
 
-         qDebug () <<"[VMAX.toDouble() >= 0.2  && VMAX.toDouble() <= 0.3 ] = " << flag_good_7;
+        qDebug () <<"[VMAX.toDouble() >= 0.2  && VMAX.toDouble() <= 0.3 ] = " << flag_good_7 << " : index = " << index;
     }
+
 
     if(flag_good_7)
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = '"+VMAX+"'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        // emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+        //                                                                                                                             "Sootv = 'Соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
+
+        emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                              "Sootv = '"+QString::number(VMAX.toDouble()*1000)+" мВ'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
     }
     else
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = '"+VMAX+"'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        // emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+        //                                                                                                                             "Sootv = 'Не соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
+        emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                              "Sootv = '"+QString::number(VMAX.toDouble()*100)+" мВ'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
     }
 
 
-    qDebug () << "Проверка 7  Прошла = " << sem->available();
-
-
-    Sleep(1000);
+    qDebug () << "Proverka 7  END : index = " << index;
 
     emit setOutput(QString::number(index),false);
 
-    emit signal_EndProverka(countProverka);
+    emit signal_slot_StartProverka_Os(index,indexList);
 
-    qDebug () << "Ждем остальные приемники = " << sem->available();
-
+    emit signal_EndProverka(countProverka,indexList);
+    qDebug () << "Wait all np : index = " << index;
     sem->acquire();
 
     if(flag_auto)
@@ -702,53 +1419,64 @@ void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_7()
 void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_8()
 {
     countProverka = 8;  //№8
+
+    qDebug() << "Start proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_8 proverka : index = " << index;
+
+    os->os->flag_change_seitings = false;
+    os->slot_Change_Seitings();
+
     emit signal_StartProverkaIndex(QString::number(countProverka));
+
+    //Cигнал для установки напряжения на источнике питания на том блоке к которому подсоединен приемник
+    emit setVolt(QString::number(index),"5");
     //запускаем приемник (падали ток)
     emit setOutput(QString::number(index),true);
+    //Ждем загрузки приемников
+    waitMRKLoad();
 
-    gsg->os->slot_Change_Seitings();
 
     job = true;
 
-    //  emit startWork();
 
-
-
-
-    emit startWork_Os();
-
-    qDebug () << "Запустили 8 проверку";
+    qDebug () << "Start 8 proverka : index = " << index;
 
     stay = QDateTime::currentDateTime();
-    qDebug () << "Проверка 7 Начата  ждем";
-    qDebug () << "Дата старта: " << start.toString("dd.MM.yyyy  hh:mm:ss");
+    qDebug () << "Proverka 8 Begin : index = " << index;
+    qDebug () << "Data Start: " << start.toString("dd.MM.yyyy  hh:mm:ss")<< " : index = " << index;
     //Запись в БД начала проверки
-    gsg->BD->zaprosQueryModel("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
-    //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
+    emit sendZaprozToBD("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
 
 
 
-    qDebug () << "Проверка Начата  8 = " << sem->available();
+    if(flag_start_mrk)
+    {
+        emit startWork_Os();
+        //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
+        sem->acquire();
+    }
+    else
+    {
+        Good  = flag_start_mrk;
+    }
 
-    sem->acquire();
+
+
 
     job = false;
 
-
-    gsg->tp->slot_comand2_Connect_Vx1_1C(*QString::number(index).toUtf8().data());
-
-    Sleep(1000);
+    emit signal_beginOSProv_7(index);
+    sem->acquire();
 
 
-    QString Amplituda = gsg->os->os->getAmplitude();
+    tp->slot_comand2_Connect_Vx1_1C(*QString::number(index).toUtf8().data()-0x30,index);
+    sem->acquire();
 
-    Amplituda = gsg->os->os->getAmplitude();
 
-    qDebug () <<"Amplituda = " << Amplituda;
+    QString Amplituda = os->os->getAmplitude();
+    qDebug () <<"Amplituda = " << Amplituda << " : index = " << index;
+    qDebug () <<"Amplituda.toDouble() = " << Amplituda.toDouble() << " : index = " << index;
 
-    qDebug () <<"Amplituda.toDouble() = " << Amplituda.toDouble();
-
-    if(Amplituda.toDouble() <= 5 )
+    if(Amplituda.toDouble() >= 2.4 )
     {
         flag_good_8 = true;
     }
@@ -758,33 +1486,40 @@ void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_8()
     }
 
 
+
+
     if(flag_good_8)
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = '"+Amplituda+"'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        // emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+        //                                                                                                                             "Sootv = 'Соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
+        emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                              "Sootv = '"+QString::number(Amplituda.toDouble())+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
+
     }
     else
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = '"+Amplituda+"'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        // emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+        //                                                                                                                             "Sootv = 'Не соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
+        emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                              "Sootv = '"+QString::number(Amplituda.toDouble())+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
+
     }
 
-    qDebug () << "Проверка 8  Прошла = " << sem->available();
-
-
-
-    Sleep(1000);
+    qDebug () << "Proverka 8  End  : index = " << index;
 
     emit setOutput(QString::number(index),false);
 
-    emit signal_EndProverka(countProverka);
+    emit signal_slot_StartProverka_Os(index,indexList);
 
-    qDebug () << "Ждем остальные приемники = " << sem->available();
-
-
-    gsg->os->slot_Change_Seitings();
+    emit signal_EndProverka(countProverka,indexList);
+    qDebug () << "Wait all np  : index = " << index;
 
     sem->acquire();
+
 
 
     if(flag_auto)
@@ -798,38 +1533,48 @@ void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_8()
 void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_9()
 {
     countProverka = 9;  //№9
+
+    qDebug() << "Start proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_9 proverka : index = " << index;
+
+    os->os->flag_change_seitings_3 = false;
+    os->slot_Change_Seitings3();
+
     emit signal_StartProverkaIndex(QString::number(countProverka));
+
+    //Cигнал для установки напряжения на источнике питания на том блоке к которому подсоединен приемник
+    emit setVolt(QString::number(index),"5");
     //запускаем приемник (падали ток)
     emit setOutput(QString::number(index),true);
+    //Ждем загрузки приемников
+    waitMRKLoad();
 
-    gsg->os->slot_Change_Seitings3();
 
     job = true;
 
-    Sleep(10000); // Ждем 10 секунд
-
-    qDebug () << "Запустили 9 проверку";
+    qDebug () << "Start 9 proverka  : index = " << index;
 
     stay = QDateTime::currentDateTime();
-    qDebug () << "Проверка 7 Начата  ждем";
-    qDebug () << "Дата старта: " << start.toString("dd.MM.yyyy  hh:mm:ss");
+    qDebug () << "Proverka 9 Begin  : index = " << index;
+    qDebug () << "Data start: " << start.toString("dd.MM.yyyy  hh:mm:ss") << " : index = " << index;
     //Запись в БД начала проверки
-    gsg->BD->zaprosQueryModel("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
-    //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
+    emit sendZaprozToBD("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
 
 
-    //Отправить на пульт команду
-    //Отправить на пульт команду 0401 (где младший байт – номер приемника в соответствии с приложением 3)
-
-    QString Amplituda = gsg->os->os->getVMAX("CHANnel1");
-
-    qDebug () <<"Amplituda = " << Amplituda;
-
-    qDebug () <<"Amplituda.toDouble() = " << Amplituda.toDouble();
 
     job = false;
 
-    if(Amplituda.toDouble() <= 5.25 && Amplituda.toDouble() >= 4.75 )
+    emit signal_beginOSProv_7(index);
+    sem->acquire();
+
+    tp->slot_comand4_Connect_Vx1_MShY(*QString::number(index).toUtf8().data()-0x30,index);
+    sem->acquire();
+
+
+    QString Amplituda = os->os->getVRMS("CHANnel1");
+    qDebug () <<"Amplituda = " << Amplituda << " : index = " << index;
+    qDebug () <<"Amplituda.toDouble() = " << Amplituda.toDouble() << " : index = " << index;
+
+    if(Amplituda.toDouble() >= 4.75 && Amplituda.toDouble() <= 5.25)
     {
         flag_good_9 = true;
     }
@@ -838,26 +1583,37 @@ void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_9()
         flag_good_9 = false;
     }
 
-    emit signal_EndProverka(countProverka);
 
     if(flag_good_9)
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = '"+Amplituda+"'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        //  emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+        //                                                                                                                              "Sootv = 'Соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
+        emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                              "Sootv = '"+QString::number(Amplituda.toDouble())+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
     }
     else
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = '"+Amplituda+"'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        //  emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+        //                                                                                                                              "Sootv = 'Не соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
+        emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                              "Sootv = '"+QString::number(Amplituda.toDouble())+" В'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
     }
 
-    Sleep(5000); // Ждем 5 секунд
 
-    gsg->os->slot_Change_Seitings3();
+    qDebug () << "Proverka 9  End  : index = " << index;
 
     emit setOutput(QString::number(index),false);
 
+    emit signal_slot_StartProverka_Os(index,indexList);
+
+    emit signal_EndProverka(countProverka,indexList);
+    qDebug () << "Wait all np  : index = " << index;
     sem->acquire();
+
 
     if(flag_auto)
     {
@@ -867,95 +1623,136 @@ void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_9()
 
 void RelizProverka::proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_10()
 {
-    countProverka = 10;  //№10
-    emit signal_StartProverkaIndex(QString::number(countProverka));
-    emit signal_startImitator();
 
-    //запускаем приемник (падали ток)
-    emit setOutput(QString::number(index),true);
+    countProverka = 10;  //№10
+
+    qDebug() << "Start proverka_rabotosposobnosti_Ponijennoe_naprRjenie_NP_ID_10 proverka : index = " << index;
+
+
+    emit signal_StartProverkaIndex(QString::number(countProverka));
+
+    os->os->flag_change_seitings_3 = true;
+    os->slot_Change_Seitings3();
 
     job = true;
 
-    //  emit startWork();
+    //Cигнал для установки напряжения на источнике питания на том блоке к которому подсоединен приемник
+    emit setVolt(QString::number(index),"5");
+    //запускаем приемник (падали ток)
+    emit setOutput(QString::number(index),true);
+    //Ждем загрузки приемников
+    waitMRKLoad();
 
     emit startWork_Os();
 
-    qDebug () << "Запустили 10 проверку";
-
     stay = QDateTime::currentDateTime();
 
-    qDebug () << "Проверка 10 Начата  ждем";
-    qDebug () << "Дата старта: " << start.toString("dd.MM.yyyy  hh:mm:ss");
+    qDebug () << "Proverka 10 Begin  wait : index = " << index;
+    qDebug () << "Data start: " << start.toString("dd.MM.yyyy  hh:mm:ss") << " : index = " << index;
     //Запись в БД начала проверки
-    gsg->BD->zaprosQueryModel("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
+    emit sendZaprozToBD("INSERT INTO Result (DateStayStart,IdLink,IdProverki) VALUES('"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"','"+IdLink+"','"+QString::number(countProverka)+"')");
+
     //Семафор для остановки потока проверок для того чтоб подождать пока не найдутся спутники (не выполнится сама проверка)
-
-
-    qDebug () << "Проверка 10 Начата   = " << sem->available();
-
     sem->acquire();
-
     job = false;
 
+    qDebug () << "Proverka 10 Start   : index = " << index;
 
-    gsg->tp->slot_comand2_Connect_Vx1_1C(*QString::number(index).toUtf8().data());
-
-    Sleep(1000);
-
-
-    QString Amplituda = gsg->os->os->getDelay();
+    emit signal_beginOSProv_7(index);
+    sem->acquire();
 
 
-    qDebug () <<"Amplituda = " << Amplituda;
+    tp->slot_comand2_Connect_Vx1_1C(*QString::number(index).toUtf8().data()-0x30,index);
+    sem->acquire();
 
-    qDebug () <<"Amplituda.toDouble() = " << Amplituda.toDouble();
 
-    qDebug () <<"Amplituda.toDouble() = " << Amplituda.toDouble()*(-1);
+    tp->slot_comand3_Connect_Vx2_1C(index);
+    sem->acquire();
 
-    qDebug () <<"Amplituda.toDouble() = " << 1*exp(-6);
+    os->os->setTIMebaseSCALe("0.0000005");
+    this->thread()->sleep(2);
 
-    if(Amplituda.toDouble() <= 1*exp(-6) )
+
+    QString Delay;
+
+
+    Delay = os->os->getDelay();
+
+
+
+
+    qDebug () <<"Delay = " << Delay;
+    qDebug () <<"Delay.toDouble() = " << QString::number(qAbs(Delay.toDouble()),'f',6) << " : index = " << index;
+
+
+    if(qAbs(Delay.toDouble()) <= 0.000001 ) // 1*qPow(10,(-6))
     {
         flag_good_10 = true;
     }
     else
     {
+
+        os->os->setTIMebaseSCALe("0.005");
+        this->thread()->sleep(2);
+
+        Delay = os->os->getDelay();
+        qDebug () <<"Delay = " << qAbs(Delay.toDouble());
+        qDebug () <<"Delay = " << qAbs(Delay.toDouble()*100);
+
+
         flag_good_10 = false;
     }
 
 
+
+
     if(flag_good_10)
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = '"+Amplituda+"'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+        // emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+        //                                                                                                                             "Sootv = 'Соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
+        emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                              "Sootv = '"+QString::number(qAbs(Delay.toDouble())*qPow(10,6),'f',3)+" мкс'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
+
     }
     else
     {
-        gsg->BD->zaprosQueryModel("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
-                                                                                                                                    "Sootv = '"+Amplituda+"'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
-    }
+        // emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+        //                                                                                                                             "Sootv = 'Не соотв.'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
 
-    qDebug () << "Проверка 10  Прошла = " << sem->available() << " Флаг : " << flag_good_10;
+        emit sendZaprozToBD("UPDATE Result SET DateStayEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"', "
+                                                                                                                              "Sootv = '"+QString::number(qAbs(Delay.toDouble())*qPow(10,6),'f',3)+" мкс'  WHERE DateStayStart = '"+stay.toString("dd.MM.yyyy  hh:mm:ss")+"' AND IdLink = '"+IdLink+"'");
+
+
+    }
 
     emit setOutput(QString::number(index),false);
 
-    qDebug () << "DateStart = " << start.toString("dd.MM.yyyy  hh:mm:ss");
+    qDebug () << "Proverka 10  End : index = " << index << " Флаг : " << flag_good_10;
+    qDebug () << "DateStart = " << start.toString("dd.MM.yyyy  hh:mm:ss") << " : index = " << index;
 
-    gsg->BD->zaprosQueryModel("UPDATE DateStartEnd SET DateEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"'"
-                                                                                                                                  " WHERE DateStart = '"+start.toString("dd.MM.yyyy  hh:mm:ss")+"'");
+    qDebug () << "sem->available() = " <<sem->available() << " : index = " << index;
 
-    qDebug () << "Конец = " << sem->available();
+    emit sendZaprozToBD("UPDATE DateStartEnd SET DateEnd = '"+QDateTime::currentDateTime().toString("dd.MM.yyyy  hh:mm:ss")+"'"
+                                                                                                                            " WHERE DateStart = '"+start.toString("dd.MM.yyyy  hh:mm:ss")+"'");
 
-    emit signal_EndProverka(countProverka);
+    emit signal_slot_StartProverka_Os(index,indexList);
+
+    emit signal_EndProverka(countProverka,indexList);
+    qDebug () << "Wait all np  : index = " << index;
+
+    qDebug () << "The END  : index = " << index;
 }
 
 
 void RelizProverka::Work(bool auto_test, int proverka)
 {
-    qDebug () << "RelizProverka";
-
-
     flag_auto = auto_test;
+
+    qDebug () << "RelizProverka = " << index << " | auto = " << flag_auto;
+
+
 
     if(auto_test)
     {
@@ -965,20 +1762,23 @@ void RelizProverka::Work(bool auto_test, int proverka)
     {
         switch (proverka)
         {
-            case 1:emit signal_StartProverka_1(); break;
-            case 2:emit signal_StartProverka_2(); break;
-            case 3:emit signal_StartProverka_3(); break;
-            case 4:emit signal_StartProverka_4(); break;
-            case 5:emit signal_StartProverka_5(); break;
-            case 6:emit signal_StartProverka_6(); break;
-            case 7:emit signal_StartProverka_7(); break;
-            case 8:emit signal_StartProverka_8(); break;
-            case 9:emit signal_StartProverka_9(); break;
-            case 10:emit signal_StartProverka_10(); break;
+        case 1:emit signal_StartProverka_1(); break;
+        case 2:emit signal_StartProverka_2(); break;
+        case 3:emit signal_StartProverka_3(); break;
+        case 4:emit signal_StartProverka_4(); break;
+        case 5:emit signal_StartProverka_5(); break;
+        case 6:
+        {
+            emit signal_StartProverka_6(); break;
+        }
+        case 7:emit signal_StartProverka_7(); break;
+        case 8:emit signal_StartProverka_8(); break;
+        case 9:emit signal_StartProverka_9(); break;
+        case 10:emit signal_StartProverka_10(); break;
 
         }
     }
 
 
-
 }
+

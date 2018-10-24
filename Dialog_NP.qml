@@ -32,7 +32,7 @@ Rectangle {
         Label {
             id: textLabel
             anchors.margins: 10
-            text: "ПРМ № " + (model.index + 1)
+            text: "ПРМ № " + model.modelData.indexNP//(model.index + 1)
             elide: Text.ElideLeft
             anchors.horizontalCenterOffset: 0
             anchors.horizontalCenter: parent.horizontalCenter
@@ -260,13 +260,13 @@ Rectangle {
                         }
 
 
-                        if(dataModel.get(styleData.row).mode == 5 )
+                        if(dataModel.get(styleData.row).mode === 5 )
                         {
 
                             return "#FFF000";
                         }
 
-                        if(dataModel.get(styleData.row).mode == 6)
+                        if(dataModel.get(styleData.row).mode === 6)
                         {
 
                             return "#FFA500";
@@ -360,59 +360,30 @@ Rectangle {
 
 
 ///Происходит утечка памяти надо думать
-//        Connections{
-//            target: model.modelData
+        Connections{
+            target: model.modelData
 
 
-//            onSignal_listSpytnikChanged:
-//            {
+            onSignal_listSpytnikChanged:
+            {
+                console.log("listSpytnik_Liters = " + model.modelData.listSpytnik)
 
-//                // axisY_bar_Amplitud.max = model.modelData.listSpytnik_Amplitude[0];
+                console.log(model.modelData.listSpytnik.count)
 
+                for(var i =0; i <= 24; i++ )
+                {
+                    gc();
+                    dataModel.objectName = i;
+                    if(i != 24)
+                    {
 
-//                console.log("listSpytnik_Liters = " + model.modelData.listSpytnik)
-
-//                console.log(model.modelData.listSpytnik.count)
-
-//                dataModel.sync();
-
-//                for(var i =0; i <= 24; i++ )
-//                {
-
-
-//                    //                    if(bar.values[i] != model.modelData.listSpytnik[i])
-//                    //                    {
-//                    //                        bar.replace(i,model.modelData.listSpytnik[i]);
-//                    //                    }
-
-//                    //                    if(bar_Amplitud.values[i] != model.modelData.listSpytnik_Amplitude[i])
-//                    //                    {
-//                    //                        bar_Amplitud.replace(i,model.modelData.listSpytnik_Amplitude[i]);
-//                    //                    }
-
-
-
-//                    gc();
-
-//                    dataModel.objectName = i;
-//                    if(i != 24)
-//                    {
-
-//                        dataModel.get(i).mode = model.modelData.listSpytnik[i];
-//                        dataModel.get(i).level = model.modelData.listSpytnik_Amplitude[i];
-//                        dataModel.get(i).spytnik = model.modelData.listSpytnik_Name[i];
-//                    }
-
-//                    //                    if(model.modelData.listSpytnik_Amplitude[i] >  axisY_bar_Amplitud.max)
-//                    //                    {
-//                    //                        axisY_bar_Amplitud.max = model.modelData.listSpytnik_Amplitude[i];
-//                    //                    }
-
-//                }
-
-
-//            }
-//        }
+                        dataModel.get(i).mode = model.modelData.listSpytnik[i];
+                        dataModel.get(i).level = model.modelData.listSpytnik_Amplitude[i];
+                        dataModel.get(i).spytnik = model.modelData.listSpytnik_Name[i];
+                    }
+                }
+            }
+        }
 
 
 
@@ -606,8 +577,10 @@ Rectangle {
                 }
             }
             // По нажатию кнопки закрываем диалог
-            onClicked: { dialogNp.close();
-                            gc(); }
+            onClicked: {
+                dialogNp.close();
+                            gc();
+            }
         }
 
         // Создаём разделитель между кнопками шириной в 2 пикселя
@@ -643,9 +616,10 @@ Rectangle {
                 }
             }
             // По нажатию кнопки закрываем диалог
-            onClicked: { dialogNp.close();
-                          gc(); }
-
+            onClicked: {
+                dialogNp.close();
+                          gc();
+            }
 
         }
     }

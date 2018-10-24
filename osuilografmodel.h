@@ -9,7 +9,8 @@ class OsuilografModel : public QObject
 {
     Q_OBJECT
 public:
-    explicit OsuilografModel(QObject *parent = 0);
+    explicit OsuilografModel(QObject *parent = nullptr);
+    ~OsuilografModel();
 
 
      Osuilograf* os;
@@ -17,7 +18,7 @@ public:
      int R;
      int G;
 
-      Q_PROPERTY(QString name READ name);
+      Q_PROPERTY(QString name READ name)
 
       const QString & name() const;
 

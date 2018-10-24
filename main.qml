@@ -1,653 +1,696 @@
-import QtQuick 2.5
+import QtQuick 2.9
+import QtQuick.Controls 2.2
 
-import QtQuick.Layouts 1.0
-
+import QtQuick.Layouts 1.3
+import QtQuick.Window 2.3
+import QtQuick.Controls.Styles 1.4
 
 import Qt.labs.platform 1.0
 
-import QtQuick.Controls 1.4 as Controls
+import QtGraphicalEffects 1.0
+import QtWinExtras 1.0
 
-import QtQuick.Controls 2.0 as Controls2
+import QtQml 2.2
+import ClockCircle 1.0
 
-import QtQuick.Window 2.0
-
-Controls.ApplicationWindow {
-    id: window
+ApplicationWindow {
+    id: mainWindow
+    width:1024
+    height:768
     visible: true
-    width: 1200
-    height: 900
-    title: qsTr("GPS GLONASS test")
+
+    minimumHeight: 768
+    minimumWidth: 1024
+
+    color: "#ececed"
+    property alias planeMain: planeMain
+    property alias view: view
+    title: qsTr("GPS GLONASS Test stend")
 
 
-    menuBar: Controls.MenuBar {
-        Controls.Menu {
-            title: qsTr("Меню")
+    /////////////////////////////////////////////////////
 
-            Controls.MenuItem {
-                text: qsTr("Выход")
-                shortcut: "Ctrl+F4"
-                onTriggered: Qt.quit()
-            }
-        }
-
-        Controls.Menu {
-            id: menuProverka
-            visible: false
-            title: qsTr("Проверки")
-            Controls.MenuItem {
-                id:autoProverka
-                text: qsTr("Автоматизированная проверка")
-                shortcut: "Ctrl+A"
-                onTriggered:  checkable = true;
-                checkable: true
-                checked: true
+    flags: Qt.Window | Qt.FramelessWindowHint // Отключаем обрамление окна
 
 
-            }
-        }
+    property string stWindow: ""
 
-        Controls.Menu {
-            id: menuTimer
-            visible: false
-            title: qsTr("Таймер")
-            Controls.MenuItem {
-                id:menuItemTimer
-                text: qsTr("Настройка таймера")
-                shortcut: "Ctrl+T"
-                onTriggered:  timerDialog.show();
-
-
-            }
-        }
-
-    }
-
-
-    Shortcut
+    onVisibilityChanged:
     {
-        sequence: "Ctrl+E"
-        onActivated: {
-            if(menuProverka.visible)
-            {
-                menuProverka.visible = false;
-            }
-            else
-            {
-               menuProverka.visible = true;
-               //autoProverka.enabled = false;
-            }
-        }
-
-    }
-
-
-
-    Window{
-        id: timerDialog
-        width: 250
-        height: 100
-
-        title: qsTr("Таймер")
-
-        maximumWidth : 250
-
-        maximumHeight : 100
-
-        modality: Qt.ApplicationModal
-
-        GridLayout
+        console.log("mainWindow.visibility = ",mainWindow.visibility,"  ; "+stWindow);
+        if(stWindow === "43" && mainWindow.visibility === 2)
         {
-            columns: 2
-            anchors.fill: parent
-            Controls2.TextField
-            {
-                id: textTimer
-                placeholderText: qsTr("Время таймера:")
-                text:  qsTr(camberTimer.textTimerSet)
-                Layout.fillHeight: true
-                Layout.fillWidth: true
-                Layout.columnSpan: 2
-                font.capitalization: Font.MixedCase
-                font.bold: true
-                font.pixelSize: 20
-                horizontalAlignment : TextInput.AlignHCenter
-            }
+            stWindow == "";
+            mainWindow.showMaximized();
 
-            Controls.Button
-            {
-                text: "Отмена"
-                Layout.fillHeight: true
-                Layout.fillWidth: true
-
-                onClicked: {
-                    timerDialog.close();
-                    gc();
-
-                }
-            }
-
-            Controls.Button
-            {
-                text: "Установить"
-                Layout.fillHeight: true
-                Layout.fillWidth: true
-
-                onClicked: {
-                    camberTimer.textTimerSet = textTimer.text;
-
-                    camberTimer.setTimerConst();
-
-                    timerDialog.close();
-                    gc();
-
-                }
-            }
-
-
+            //clockCircle.paint2();
         }
-
-    }
-
-    //    Dialog {
-    //        id:dialogMode
-    //        visible: false
-    //        title: "Выбрать режим"
-    //        modality: Qt.WindowModal
-
-    //        width: 300
-    //        height: 200
-
-    //        maximumWidth : 300
-
-    //        maximumHeight : 200
-    //    }
-
-
-    Rectangle
-    {
-        z: 3
-        id: boxSliver
-        color: "white"  //"grey"
-        anchors.fill:  parent
-        visible: false
-    }
-
-
-    ClockCircle
-    {
-        z: 4
-        anchors.fill: parent
-        id: camberTimer
-        visible: false
-        //asynchronous: true
-        // source: "ClockCircle.qml";
-    }
-
-
-    /* С помощью объекта Connections
-         * Устанавливаем соединение с классом ядра приложения
-         * */
-    Connections {
-        target: gsg // Указываем целевое соединение
-        /* Объявляем и реализуем функцию, как параметр
-             * объекта и с имененем похожим на название сигнала
-             * Разница в том, что добавляем в начале on и далее пишем
-             * с заглавной буквы
-             * */
-        onSignal_getCONTrolQML: {
-
-            //screenObject.capture("Ждем запуска имитатора.jpg")
-
-            boxSliver.visible = false;
-
-
-            //Закрыть окна камеры (ждем установки темпиратуры)
-            camberTimer.visible = false;
-            swipeView.visible = true;
-
-            tabBar.visible = false;
-            swipeView.setCurrentIndex(4);
-
-            //показать информацию о камере в проверках
-            textCamberInform.visible = true;
-
-
-            proverka.slot_StartProverka_Next();
-
-        }
-    }
-
-
-    Connections
-    {
-        target: proverka
-
-        onSignal_stopCamberWorkProverka:
+        else
         {
-            camber.slot_stopCamberWork();
-        }
-        // @disable-check M16
-        onSignal_startCold:
-        {
-            autoProverka.enabled = false;
-
-            camber.slot_stopCamberWork();
-
-            camber.slot_SetCold();
-
-            boxSliver.visible = true;
-
-            //Запуск окна камеры (ждем установки темпиратуры)
-            camberTimer.visible = true;
-
-            //Запуск окна имитатора (ждем запуска имитатора)
-            //messageImitator.visible = true;
-            swipeView.visible = false;
-
-            tabBar.visible = false;
-            textCamberInform.visible = false;
-
-            //Сначало установить темпиратуру 27 градусов (прграмма номер 3)
+                       if(mainWindow.visibility === 2)
+                       {
+                           //forePageClockCircle.clockCircleItem.update();
 
 
-            //Затем запустить камеру.
-            camber.slot_startCamberWork();
 
-            //Отключение не нужных кнопок для отображения
-            start.visible = false;
-            showResult.visible = false;
-            creatPDF.visible = false;
+            //               console.log("mainWindow.width  = ",mainWindow.width ,"mainWindow.height = ",mainWindow.height);
+            //               mainWindow.width = 1024;
+            //               mainWindow.height = 768;
+            //               //mainWindow.showMaximized();
+            //               console.log("mainWindow.width  = ",mainWindow.width ,"mainWindow.height = ",mainWindow.height);
+                        }
         }
 
-        // @disable-check M16
-        onSignal_startNY:
-        {
-            camber.slot_stopCamberWork();
-
-            camber.slot_SetNY();
-
-            boxSliver.visible = true;
-
-            //Запуск окна камеры (ждем установки темпиратуры)
-            camberTimer.visible = true;
-
-            //Запуск окна имитатора (ждем запуска имитатора)
-            //messageImitator.visible = true;
-            swipeView.visible = false;
-
-            tabBar.visible = false;
-            textCamberInform.visible = false;
-
-            //Сначало установить темпиратуру 27 градусов (прграмма номер 3)
-
-
-            //Затем запустить камеру.
-            camber.slot_startCamberWork();
-
-            //Отключение не нужных кнопок для отображения
-            start.visible = false;
-            showResult.visible = false;
-            creatPDF.visible = false;
-        }
-
-        // @disable-check M16
-        onSignal_startHord:
-        {
-            camber.slot_stopCamberWork();
-
-            camber.slot_SetHord();
-
-
-            boxSliver.visible = true;
-
-            //Запуск окна камеры (ждем установки темпиратуры)
-            camberTimer.visible = true;
-
-            //Запуск окна имитатора (ждем запуска имитатора)
-            swipeView.visible = false;
-            textCamberInform.visible = false;
-
-            tabBar.visible = false;
-
-            //Сначало установить темпиратуру 27 градусов (прграмма номер 3)
-
-
-            //Затем запустить камеру.
-            camber.slot_startCamberWork();
-
-            //Отключение не нужных кнопок для отображения
-            start.visible = false;
-            showResult.visible = false;
-            creatPDF.visible = false;
-        }
-    }
-
-
-    toolBar: Controls.ToolBar{
-
-        id: tabHeaderBar
-
-        RowLayout {
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 5
-
-
-            Controls.Button {
-                id: start
-                text: qsTr("Начать проверку")
-                visible: false;
-
-
-                function startCamberWork()
-                {
-                    //Запустить установку темпиратуры
-                    if(camber.slot_TestConnect())
-                    {
-                        boxSliver.visible = true;
-
-                        //Запуск окна камеры (ждем установки темпиратуры)
-                        camberTimer.visible = true;
-
-                        //Запуск окна имитатора (ждем запуска имитатора)
-
-                        swipeView.visible = false;
-                        textCamberInform.visible = false;
-
-                        tabBar.visible = false;
-
-                        //Сначало установить темпиратуру 27 градусов (прграмма номер 3)
-                        camber.slot_SetNY();
-
-                        //Затем запустить камеру.
-                        camber.slot_startCamberWork();
-
-                        //Отключение не нужных кнопок для отображения
-                        start.visible = false;
-                        showResult.visible = false;
-                        creatPDF.visible = false;
-
-                    }
-                    else
-                    {
-                        console.log("EROROROOROROR CONNECT");
-                    }
-                }
-
-                onClicked: {
-
-                    if(autoProverka.checked)
-                    {
-                        proverka.autoProverka = true;
-                        startCamberWork();
-                    }
-                    else
-                    {
-                        proverka.autoProverka = false;
-                        swipeView.setCurrentIndex(2);
-                        console.log("Запустить не автоматизированную проверку");
-
-                        console.log(proverka.autoProverka);
-                    }
-
-
-
-
-                    //proverka.slot_StartProverka();
-
-
-
-
-                    // gsg.setSIGNALtype("START");
-                    // gsg.slot_StartTimer();
-                    // gsg.slot_Work();
-
-                    // n6700_1.slot_StartTimer();
-                    //  gsg.slot_StartTimer();
-                    // gsg.slot_Work();
-                    // n6700_1.slot_Work();
-                }
-            }
-            Controls.Button {
-                id: showResult
-                visible: false;
-
-
-                text: qsTr("Посмотреть результаты")
-
-                onClicked: {
-                    tabBar.currentIndex = 3;
-                }
-            }
-
-        }
-
-        Controls.Button {
-            id: creatPDF
-            text: qsTr("Сгенирировать отчет")
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.right: parent.right
-            anchors.rightMargin: 10
-            visible: false;
-
-            onClicked: {
-                pdf.slot_FindData();
-            }
-        }
-
-
-        Connections
-        {
-            target:camber
-
-            // @disable-check M16
-            onSendData:
-            {
-                textCamberInform.text = "Темпиратура: <b>"+tempSV+"</b> Темпиратура в камере: <b>"+tempPV+"</b>\nРежим камеры: <b>"+current+"</b> нагерватель: <b>"+tempHeater+"</b> охлаждение:  <b>"+refrigeration+"</b>";
-                gc();
-            }
-
-        }
-
-        Text {
-            id: textCamberInform
-            width: 500
-            //text: qsTr("Темпиратура: <b>42С</b> Темпиратура в камере: <b>40С</b>\nРежим камеры: <b>PROGRAM: RUN</b> нагерватель: <b>5%</b> охлаждение:  <b>STOP</b>")
-            horizontalAlignment: Text.AlignHCenter
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.right: parent.right
-            // anchors.rightMargin: 10
-            visible: false;
-            font.pointSize: 10
-            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-
-        }
-
-
-        Text {
-            id: textFioWork
-            y: 1
-            width: 500
-            height: 14
-            text: qsTr("")
-            font.pointSize: 7
-            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-            anchors.left: parent.left
-            anchors.leftMargin: 2
-            visible: false
-            font.pixelSize: 12
-        }
-
-        Text {
-            id: textResult
-            y: 1
-            width: 500
-            height: 14
-            text: qsTr("")
-            font.pointSize: 7
-            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-            anchors.left: parent.left
-            anchors.leftMargin: 2
-            visible: false
-            font.pixelSize: 12
-        }
-
-    }
-
-    Controls2.SwipeView {
-        id: swipeView
-        y: 0
-        anchors.fill: parent
-        currentIndex: tabBar.currentIndex
-
-        //Событие обработки перелистывания
-        onCurrentIndexChanged:
-        {
-            //Отображение определенных кнопок в зависимости от страницы на каторой находится пользователь
-            switch(swipeView.currentIndex)
-            {
-            case 0:
-                start.visible = false;
-                showResult.visible = false;
-                creatPDF.visible = false;
-
-                textResult.visible = false;
-                textFioWork.visible = false;
-
-                textCamberInform.visible = false;
-
-                break;
-            case 1: //Показывает кнопки на верхней панеле для включения устрйоств
-                start.visible = true;
-                showResult.visible = true;
-                creatPDF.visible = false;
-
-                textResult.visible = false;
-                textFioWork.visible = true;
-                textCamberInform.visible = false;
-
-                break;
-            case 3:
-                creatPDF.visible = true;
-                textResult.visible = true;
-
-                textFioWork.visible = false;
-                start.visible = false;
-                showResult.visible = false;
-                textCamberInform.visible = false;
-
-                break;
-            case 4:
-                textFioWork.visible = true;
-
-                textResult.visible = false;
-                showResult.visible = false;
-                creatPDF.visible = false;
-                start.visible = false;
-                textCamberInform.visible = true;
-                break;
-
-            default:
-                creatPDF.visible = false;
-                if(start.visible == false || start.visible == false)
-                {
-                    start.visible = true;
-                    showResult.visible = true;
-
-
-                    textResult.visible = false;
-                    textFioWork.visible = true;
-                }
-                break;
-            }
-        }
-
-        StartPageEtap
-        {
-
-
-        }
-
-        Page1 {
-
-
-        }
-
-        Page2 {
-
-        }
-
-        Page3 {
-
-        }
-
-        Page4
-        {
-
-        }
 
 
     }
-
-    statusBar: Controls.StatusBar
-    {
-
-        Controls2.TabBar {
-            anchors.fill: parent
-
-
-
-            id: tabBar
-            visible: false;
-            currentIndex: swipeView.currentIndex
-
-
-            Controls2.TabButton {
-                text: qsTr("Режим")
-
-            }
-            Controls2.TabButton {
-                text: qsTr("Устройства")
-
-            }
-            Controls2.TabButton {
-                text: qsTr("Проверки")
-
-            }
-            Controls2.TabButton {
-                text: qsTr("Результаты")
-
-            }
-            Controls2.TabButton {
-                text: qsTr("Ход выполненения")
-
-            }
-        }
-    }
-
 
     SystemTrayIcon {
+        id: sysTryIcon
         visible: true
-        iconSource: "qrc:/img/logo.ico"
-
-
-
-        Component.onCompleted: showMessage("Запуск АРМ", "Запуск программы автоматизации испытаний.")
-
+        iconSource: "qrc:/images/logo_blue.png"
 
         menu: Menu {
-            MenuItem {
-                text: qsTr("show")
-                onTriggered:{window.show()
-                    window.raise()
-                    window.requestActivate()
-                }
-            }
             MenuItem {
                 text: qsTr("Quit")
                 onTriggered: Qt.quit()
             }
+        }
+    }
+
+    DwmFeatures {
+        id: dwmFeatures
+        topGlassMargin: -1
+        leftGlassMargin: -1
+        rightGlassMargin: -1
+        bottomGlassMargin: -1
+    }
+
+    TaskbarButton {
+        id: taskbarButton
+        overlay.iconSource: "qrc:/images/logo_blue.png"
+        overlay.accessibleDescription: "qrc:/images/logo_blue.png"
+        progress.visible: true
+        progress.value: 0
+
+        onActiveFocusChanged: {
+            console.log("LOX");
+        }
+
+    }
+
+
+
+    ThumbnailToolBar {
+        ThumbnailToolButton { iconSource: "qrc:/images/closePNG.png"; tooltip: "Exit"; onClicked: Qt.quit() }
+    }
+
+    JumpList {
+        id: jumpList
+        recent.visible: true
+        frequent.visible: true
+        tasks.visible: true
+    }
+
+
+
+
+
+
+
+    // Объявляем свойства, которые будут хранить позицию зажатия курсора мыши
+    property int previousX
+    property int previousY
+
+    MouseArea {
+        id: topArea
+        z:2
+        height: 2
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+        }
+        // Устанавливаем форму курсора, чтобы было понятно, что это изменение размера
+        cursorShape: Qt.SizeVerCursor
+
+        onPressed: {
+            // Запоминаем позицию по оси Y
+            previousY = mouseY
+        }
+
+        // При изменении позиции делаем пересчёт позиции окна, и его высоты
+        onMouseYChanged: {
+            var dy = mouseY - previousY;
+
+            var h = mainWindow.height - dy;
+
+            if(h > mainWindow.minimumHeight)
+            {
+              mainWindow.setY(mainWindow.y + dy)
+              mainWindow.setHeight(mainWindow.height - dy)
+            }
+        }
+    }
+
+    // Аналогичные расчёты для остальных трёх областей ресайза
+    MouseArea {
+        id: bottomArea
+        z:1
+        height: 2
+        anchors {
+            bottom: parent.bottom
+            left: parent.left
+            right: parent.right
+        }
+        cursorShape: Qt.SizeVerCursor
+
+        onPressed: {
+            previousY = mouseY
+        }
+
+        onMouseYChanged: {
+            var dy = mouseY - previousY
+
+            var h = mainWindow.height + dy;
+
+            if(h > mainWindow.minimumHeight)
+            {
+              mainWindow.setHeight(mainWindow.height + dy)
+            }
+
 
         }
     }
+
+    MouseArea {
+        id: leftArea
+        z:1
+        width: 2
+        anchors {
+            top: topArea.bottom
+            bottom: bottomArea.top
+            left: parent.left
+        }
+        cursorShape: Qt.SizeHorCursor
+
+        onPressed: {
+            previousX = mouseX
+        }
+
+        onMouseXChanged: {
+            var dx = mouseX - previousX
+
+            var h = mainWindow.width - dx;
+
+            if(h > mainWindow.minimumWidth)
+            {
+                mainWindow.setX(mainWindow.x + dx)
+                mainWindow.setWidth(mainWindow.width - dx)
+            }
+        }
+    }
+
+    MouseArea {
+        id: rightArea
+        z:1
+        width: 2
+        anchors {
+            top: topArea.bottom
+            bottom: bottomArea.top
+            right: parent.right
+        }
+        cursorShape:  Qt.SizeHorCursor
+
+        onPressed: {
+            previousX = mouseX
+        }
+
+        onMouseXChanged: {
+            var dx = mouseX - previousX
+
+            var h = mainWindow.width + dx;
+
+            if(h > mainWindow.minimumWidth)
+            {
+                mainWindow.setWidth(mainWindow.width + dx)
+            }
+        }
+    }
+
+
+
+
+
+
+    ///////////////////////////////////////////////////
+
+
+
+    MyMenu
+    {
+        id: windowTitle
+        x:0
+        anchors.top: parent.top
+        anchors.topMargin: 0
+        z: 1
+        anchors.right: parent.right
+        anchors.rightMargin: 0
+        anchors.left: parent.left
+        anchors.leftMargin: 0
+
+        colorBackground: "#565e70"
+        colorTittle: "#f0f0f0"
+
+        tittleLabel: title
+    }
+
+
+
+    // @disable-check M16
+    onClosing:
+    {
+        console.log("CLOSE");
+    }
+
+        Rectangle
+        {
+            id: planeMain
+            radius: 10
+            width: 1024
+            height: 743
+
+            anchors.top: windowTitle.bottom
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.topMargin: 0
+
+
+
+
+            color: "#ececed"
+
+
+
+
+    Header {
+        id: header
+        width: parent.width
+        height: 60
+
+        anchors.top: windowTitle.bottom
+        anchors.topMargin: 0
+
+        anchors.left: parent.left
+        anchors.leftMargin: 0
+        anchors.right: parent.right
+        anchors.rightMargin: 0
+        z:1
+    }
+
+
+    //    Connections {
+    //        target: proverka.listProverka // Указываем целевое соединение
+
+
+    //        onSignal_proverkaNameChanged: {
+    //            console.log("OK проверка ",proverka.listProverka[0].modelData.proverkaName);
+    //        }
+    //    }
+
+
+    SwipeView {
+
+        id: view
+
+        width:1024
+        height:768
+
+
+        currentIndex: 4
+        anchors.fill: parent
+        interactive: false
+
+
+        Item {
+            id: firstPage
+
+
+            Startwindow
+            {
+                id: startWindow
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            Image {
+                id: rightArrow
+                source: "images/Arrow_grey.png"
+                width: 25
+                height: 20
+                anchors.left: startWindow.right
+                anchors.leftMargin: 10
+                anchors.verticalCenter: parent.verticalCenter
+                transformOrigin: Item.Center
+
+                MouseArea
+                {
+                    id:mouseArea_rightArrow
+                    anchors.fill: parent
+                    hoverEnabled : true
+                    onClicked: {
+                        startWindow.textField_FIO.focus = false;
+                        console.log(startWindow.textField_FIO.text,startWindow.etap);
+
+                        if(startWindow.textField_FIO.text != "")
+                        {
+                            header.exit_label.text = startWindow.textField_FIO.text;
+                            header.etap_label.text = "Этап : " + startWindow.etap;
+                            view.currentIndex = 1;
+                            proverka.modeStart = startWindow.etap;
+                            header.autoFlag.visible = true;
+                        }
+                        else
+                        {
+
+                        }
+                    }
+                    onContainsMouseChanged: {
+                        if(this.containsMouse)
+                            rightArrow.source = "images/Arrow.png";
+                        else
+                            rightArrow.source = "images/Arrow_grey.png";
+
+
+                    }
+                }
+
+            }
+
+        }
+
+
+
+        Item {
+            id: secondPage
+
+            DevicePage
+            {
+                id: deviceWindow
+
+                anchors.top: parent.top
+                anchors.topMargin: 60
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 10 // + botomMenu.height
+                anchors.left: rightArrow_Left.right
+                anchors.leftMargin: 5
+                anchors.right: rightArrow_Right.left
+                anchors.rightMargin: 5
+
+            }
+
+            Image {
+                id: rightArrow_Right
+                source: "images/Arrow_grey.png"
+                width: 25
+                height: 20
+                anchors.right: parent.right
+                anchors.rightMargin: 5
+                anchors.left: startWindow.right
+                anchors.leftMargin: 10
+                anchors.verticalCenter: parent.verticalCenter
+                transformOrigin: Item.Center
+
+                MouseArea
+                {
+                    id:mouseArea_rightArrowDevice
+                    anchors.fill: parent
+                    hoverEnabled : true
+                    onClicked: {
+                        proverka.autoProverka = header.autoFlag.checked;
+                        if(header.autoFlag.checked)
+                        {
+                            proverka.namberProverkaStart = 1;
+                            proverka.namberModeCamber = 1;
+                            proverka.slot_StartProverka();
+                            view.currentIndex = 3;
+                            header.autoFlag.enabled = false;
+                        }
+                        else
+                        {
+                            header.autoFlag.visible = false;
+                            view.currentIndex = 2;
+                        }
+
+                    }
+                    onContainsMouseChanged: {
+                        if(this.containsMouse)
+                            rightArrow_Right.source = "images/Arrow.png";
+                        else
+                            rightArrow_Right.source = "images/Arrow_grey.png";
+
+                    }
+                }
+
+            }
+
+
+            Image {
+                id: rightArrow_Left
+                source: "images/Arrow_grey.png"
+                width: 25
+                height: 20
+                anchors.right: startWindow.left
+                anchors.rightMargin: 5
+                anchors.left: parent.left
+                anchors.leftMargin: 10
+                anchors.verticalCenter: parent.verticalCenter
+                transformOrigin: Item.Center
+                rotation: 180
+
+                MouseArea
+                {
+                    id:mouseArea_leftArrowDevice
+                    anchors.fill: parent
+                    hoverEnabled : true
+                    onClicked: {
+                        header.mouseArea_exit2.onClicked(mouse);
+
+                    }
+                    onContainsMouseChanged: {
+                        if(this.containsMouse)
+                            rightArrow_Left.source = "images/Arrow.png";
+                        else
+                            rightArrow_Left.source = "images/Arrow_grey.png";
+
+                    }
+                }
+
+            }
+        }
+
+
+        Item {
+            id: thirdPage
+
+            Thirdwindow
+            {
+                id: thirdWindow
+
+                anchors.top: parent.top
+                anchors.topMargin: 60
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 10 // + botomMenu.height
+                anchors.left: rightArrow_LeftthirdWindow.right
+                anchors.leftMargin: 5
+                anchors.right: parent.right
+                anchors.rightMargin: 5
+
+            }
+
+            Image {
+                id: rightArrow_LeftthirdWindow
+                source: "images/Arrow_grey.png"
+                width: 25
+                height: 20
+                anchors.right: startWindow.left
+                anchors.rightMargin: 5
+                anchors.left: parent.left
+                anchors.leftMargin: 10
+                anchors.verticalCenter: parent.verticalCenter
+                transformOrigin: Item.Center
+                rotation: 180
+
+                MouseArea
+                {
+                    id:mouseArea_leftthirdWindow
+                    anchors.fill: parent
+                    hoverEnabled : true
+                    onClicked: {
+                        view.currentIndex = 1;
+                    }
+                    onContainsMouseChanged: {
+                        if(this.containsMouse)
+                            rightArrow_LeftthirdWindow.source = "images/Arrow.png";
+                        else
+                            rightArrow_LeftthirdWindow.source = "images/Arrow_grey.png";
+
+
+                    }
+                }
+
+            }
+        }
+
+
+        Item {
+            id: forePage
+
+            MyClock
+            {
+                anchors.fill: parent;
+            }
+
+        }
+
+
+
+        Item {
+            id: fivePage
+
+            Proverkswindow
+            {
+                id: proverkiStartPage
+                anchors.top: parent.top
+                anchors.topMargin: 60
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 10  + botomMenufivePage.height
+                anchors.left: parent.left
+                anchors.leftMargin: 5
+                anchors.right: parent.right
+                anchors.rightMargin: 5
+            }
+
+            Item {
+                id: botomMenufivePage
+
+                height: 20
+                anchors.right: parent.right
+                anchors.rightMargin: 0
+                anchors.left: parent.left
+                anchors.leftMargin: 0
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 0
+
+                // Создаём горизонтальный разделитель с помощью Rectangle
+                Rectangle {
+                    id: dividerHorizontal2
+                    color: "#d7d7d7"
+                    height: 2 // Устанавливаем ширину в два пикселя
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    // anchors.bottom: row.top
+                }
+
+
+                Label
+                {
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    text: this.visible ?  proverkiStartPage.viewProverka.model[0].proverkaName : ""
+
+                    clip: true
+                    anchors.left: parent.left
+                    anchors.leftMargin: 15
+                    //visible: proverka.listProverka[0].proverkaName ? 1:0
+
+                }
+
+                //                Label
+                //                {
+                //                    anchors.right: parent.right
+                //                    anchors.rightMargin: 5
+                //                    anchors.verticalCenter: parent.verticalCenter
+                //                    text: resultatPage.creatPDF
+                //                    clip: true
+                //                    visible: resultatPage.creatPDF ? 1:0
+
+                //                }
+
+            }
+        }
+
+
+        Item {
+            id: sixPage
+
+            Reportwindow
+            {
+                id:  resultatPage
+                anchors.top: parent.top
+                anchors.topMargin: 60
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 10 + botomMenuSixPage.height
+                anchors.left: parent.left
+                anchors.leftMargin: 5
+                anchors.right: parent.right
+                anchors.rightMargin: 5
+            }
+
+
+            Item {
+                id: botomMenuSixPage
+
+                height: 30
+                anchors.right: parent.right
+                anchors.rightMargin: 0
+                anchors.left: parent.left
+                anchors.leftMargin: 0
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 0
+
+                Label
+                {
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    text:resultatPage.textResult
+                    clip: true
+                    anchors.left: parent.left
+                    anchors.leftMargin: 10
+
+                }
+
+                Button
+                {
+                    anchors.right: parent.right
+                    anchors.rightMargin: 10
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: resultatPage.creatPDF
+                    clip: true
+                    visible: resultatPage.creatPDF ? 1:0
+
+                    onClicked: pdf.slot_FindData();
+                }
+
+            }
+        }
+
+
+    }
+
+
+
+    //////
+
+
+    }
+
+
+
 }
+
+/*##^## Designer {
+    D{i:13;anchors_y:0}
+}
+ ##^##*/

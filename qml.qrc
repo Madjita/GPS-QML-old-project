@@ -1,21 +1,35 @@
 <RCC>
     <qresource prefix="/">
         <file>main.qml</file>
-        <file>Page1.qml</file>
+        <file>js/style.js</file>
+        <file>Header.qml</file>
+        <file>images/base_copy_grey.png</file>
+        <file>images/base_copy_orange.png</file>
+        <file>images/l.png</file>
+        <file>images/l_lightBlue.png</file>
+        <file>images/l_lightBlue1.png</file>
+        <file>images/l_lightBlue2.png</file>
+        <file>images/logo.png</file>
+        <file>images/logo_blue.png</file>
+        <file>images/logo_grey.png</file>
+        <file>images/logo_white.png</file>
+        <file>images/Card2.png</file>
+        <file>Startwindow.qml</file>
+        <file>images/Arrow.png</file>
+        <file>images/Arrow_grey.png</file>
+        <file>images/in.png</file>
+        <file>images/out.png</file>
+        <file>Secondwindow.qml</file>
+        <file>images/l_zavod_blue.png</file>
+        <file>DevicePage.qml</file>
         <file>Page1Form.ui.qml</file>
-        <file>Page2.qml</file>
-        <file>Page3.qml</file>
-        <file>Page4.qml</file>
+        <file>images/Find.PNG</file>
+        <file>Thirdwindow.qml</file>
+        <file>Proverkswindow.qml</file>
         <file>Dialog_NP.qml</file>
-        <file>StartPageEtap.qml</file>
-        <file>ClockCircle.qml</file>
-    </qresource>
-    <qresource prefix="/js">
-        <file>ItemDevice.js</file>
-        <file>Signal.js</file>
-    </qresource>
-    <qresource prefix="/img">
-        <file>Find.PNG</file>
-        <file>logo.ico</file>
+        <file>Reportwindow.qml</file>
+        <file>MyMenu.qml</file>
+        <file>images/closePNG.png</file>
+        <file>MyClock.qml</file>
     </qresource>
 </RCC>

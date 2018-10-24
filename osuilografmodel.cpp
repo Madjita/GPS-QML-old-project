@@ -5,52 +5,51 @@ OsuilografModel::OsuilografModel(QObject *parent) : QObject(parent),
   G(0)
 {
 
-  qDebug () << "OsuilografModel* os : create (new)";
   os = new Osuilograf();
-  qDebug () << "OsuilografModel* os = " << sizeof(os);
+
 
 
   //Соединение
-  QObject::connect(this,&OsuilografModel::connectDevice,os,&Osuilograf::connectDevice,Qt::QueuedConnection);
+  connect(this,&OsuilografModel::connectDevice,os,&Osuilograf::connectDevice);
   //Разъединение
-  QObject::connect(this,&OsuilografModel::DisConnect,os,&Osuilograf::DisConnect,Qt::QueuedConnection);
+  connect(this,&OsuilografModel::DisConnect,os,&Osuilograf::DisConnect);
   //Сигнал для подтверждения соединения
-  QObject::connect(os,&Osuilograf::connectOk,this,&OsuilografModel::slot_connectOk,Qt::QueuedConnection);
+  connect(os,&Osuilograf::connectOk,this,&OsuilografModel::slot_connectOk);
 
 
 
 
 
   //Сигнал для запуска таймера
-  QObject::connect(this,&OsuilografModel::startTimer,os,&Osuilograf::slot_StartTimer,Qt::QueuedConnection);
+  connect(this,&OsuilografModel::startTimer,os,&Osuilograf::slot_StartTimer);
   //Сигнал для отключения таймера
-  QObject::connect(this,&OsuilografModel::stopTimer,os,&Osuilograf::endWork,Qt::QueuedConnection);
+  connect(this,&OsuilografModel::stopTimer,os,&Osuilograf::endWork);
 
 
   //Обновление данных от os
- QObject::connect(os,&Osuilograf::UpdateScenNumberIDSpytnik,this,&OsuilografModel::slot_ScenNumberIDSpytnik);
+ connect(os,&Osuilograf::UpdateScenNumberIDSpytnik,this,&OsuilografModel::slot_ScenNumberIDSpytnik);
 
  //Сигнал для установки режим "START"
- QObject::connect(this,&OsuilografModel::signal_getCONTrol,os,&Osuilograf::setCONTrol);
+ connect(this,&OsuilografModel::signal_getCONTrol,os,&Osuilograf::setCONTrol);
 
  //Сигнал от os об установки режима "START"
- QObject::connect(os,&Osuilograf::signal_QMLStart,this,&OsuilografModel::getCONTrol);
+ connect(os,&Osuilograf::signal_QMLStart,this,&OsuilografModel::getCONTrol);
 
 
  //Сигнал для установки режима на сигнал генераторе "START"
- QObject::connect(this,&OsuilografModel::signal_Gen_setCONTrol,os,&Osuilograf::setGenCONTrol);
+ connect(this,&OsuilografModel::signal_Gen_setCONTrol,os,&Osuilograf::setGenCONTrol);
 
 
  //Сигнал для установки литеры спутника на сигнал генераторе
- QObject::connect(this,&OsuilografModel::signal_Gen_setSATid,os,&Osuilograf::setGenSATid);
+ connect(this,&OsuilografModel::signal_Gen_setSATid,os,&Osuilograf::setGenSATid);
 
 
 
  //Сигнал для смены настроек
- QObject::connect(this,&OsuilografModel::signal_Change_Seitings,os,&Osuilograf::setStartSeitings2);
+ connect(this,&OsuilografModel::signal_Change_Seitings,os,&Osuilograf::setStartSeitings2);
 
  //Сигнал для смены настроек на каналы
- QObject::connect(this,&OsuilografModel::signal_Change_Seitings3,os,&Osuilograf::setStartSeitings3);
+ connect(this,&OsuilografModel::signal_Change_Seitings3,os,&Osuilograf::setStartSeitings3);
 
 
 
@@ -60,6 +59,11 @@ OsuilografModel::OsuilografModel(QObject *parent) : QObject(parent),
 
 
 
+}
+
+OsuilografModel::~OsuilografModel()
+{
+    delete os;
 }
 
 const QString &OsuilografModel::name() const

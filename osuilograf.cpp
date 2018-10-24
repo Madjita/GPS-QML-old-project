@@ -1,22 +1,35 @@
 #include "osuilograf.h"
 
-#include "Osuilograf.h"
+#include "osuilograf.h"
 #include <QDateTime>
 
 Osuilograf::Osuilograf(QObject *parent) : QObject(parent),
     ManufacturerDefault("SPECTRACOM"),
-    flag_work(false)
+    flag_work(false),
+    flag_change_seitings(true),
+    flag_change_seitings_3(false)
 
 {
 
 
     this->moveToThread(new QThread()); //Переместили класс Osuilograf в новый поток
-    qDebug () << "Помещаем класс  << Osuilograf >> в поток: " << this->thread();
-
-    QObject::connect(this->thread(),&QThread::started,this,&Osuilograf::process_start);
-
+    connect(this->thread(),&QThread::started,this,&Osuilograf::process_start);
+    connect(this,&Osuilograf::signal_finished, this->thread(), &QThread::quit);
     this->thread()->start();
-    qDebug () << "Запускаем поток << Osuilograf >> : " << this->thread();
+
+}
+
+Osuilograf::~Osuilograf()
+{
+    if(connected)
+    {
+        viClose(vi);
+    }
+
+    emit signal_finished();
+
+    emit TimerStop();
+    delete timer_Imitator_Data;
 
 }
 
@@ -28,8 +41,6 @@ void Osuilograf::process_start()
     NewDataSpytnik.clear();
 
     //Инициализация таймеров
-    QTime midnight(0,0,0);
-    qsrand(midnight.secsTo(QTime::currentTime()));
 
     timer_Imitator_Data = new QTimer();
 
@@ -77,8 +88,6 @@ void Osuilograf::Work_Amplituda()
     if(Amplituda > 0 && Amplituda < 10 )
     {
         qDebug () << "GOOOD";
-
-
     }
 
 }
@@ -87,17 +96,11 @@ void Osuilograf::Work_Amplituda()
 
 bool Osuilograf::connectDevice(QString ip)
 {
-
-    qDebug () << ip;
     viStatus=viOpenDefaultRM(&defaultRM);
 
     QString str  = "TCPIP0::"+ip+"::inst0::INSTR";
 
-   // viAddres = (ViRsrc)qPrintable(str);
-
-    // DisConnect();
-
-    viStatus=viOpen(defaultRM, (ViRsrc)qPrintable("TCPIP0::"+ip+"::inst0::INSTR"), VI_NULL, VI_NULL,&vi); // проверено - работает через IP
+    viStatus=viOpen(defaultRM, const_cast<ViRsrc>(qPrintable("TCPIP0::"+ip+"::inst0::INSTR")), VI_NULL, VI_NULL,&vi); // проверено - работает через IP
 
     if(viStatus<VI_SUCCESS)
     {
@@ -171,7 +174,7 @@ void Osuilograf::getName()
 {
     char nameChar[100] = "";
 
-    viQueryf(vi,"*IDN?\t\n","%T",nameChar);
+    viQueryf(vi,const_cast<ViString>("*IDN?\t\n"),const_cast<ViString>("%T"),nameChar);
 
     name = qPrintable(nameChar);
 
@@ -185,14 +188,14 @@ void Osuilograf::setIMPedance(QString command , int control = 0 )
     switch (control)
     {
     case 1:
-        viPrintf(vi, ":CHANnel1:IMPedance %s\r\n",qPrintable(command));
+        viPrintf(vi, const_cast<ViString>(":CHANnel1:IMPedance %s\r\n"),qPrintable(command));
         break;
     case 2:
-        viPrintf(vi, ":CHANnel2:IMPedance %s\r\n",qPrintable(command));
+        viPrintf(vi, const_cast<ViString>(":CHANnel2:IMPedance %s\r\n"),qPrintable(command));
         break;
     default:
-        viPrintf(vi, ":CHANnel1:IMPedance %s\r\n",qPrintable(command));
-        viPrintf(vi, ":CHANnel2:IMPedance %s\r\n",qPrintable(command));
+        viPrintf(vi, const_cast<ViString>(":CHANnel1:IMPedance %s\r\n"),qPrintable(command));
+        viPrintf(vi, const_cast<ViString>(":CHANnel2:IMPedance %s\r\n"),qPrintable(command));
         break;
     }
 
@@ -203,14 +206,14 @@ void Osuilograf::setSCALe(QString command, int control = 0)
     switch (control)
     {
     case 1:
-        viPrintf(vi, ":CHANnel1:SCALe %s\r\n",qPrintable(command));
+        viPrintf(vi, const_cast<ViString>(":CHANnel1:SCALe %s\r\n"),qPrintable(command));
         break;
     case 2:
-        viPrintf(vi, ":CHANnel2:SCALe %s\r\n",qPrintable(command));
+        viPrintf(vi, const_cast<ViString>(":CHANnel2:SCALe %s\r\n"),qPrintable(command));
         break;
     default:
-        viPrintf(vi, ":CHANnel1:SCALe %s\r\n",qPrintable(command));
-        viPrintf(vi, ":CHANnel2:SCALe %s\r\n",qPrintable(command));
+        viPrintf(vi, const_cast<ViString>(":CHANnel1:SCALe %s\r\n"),qPrintable(command));
+        viPrintf(vi, const_cast<ViString>(":CHANnel2:SCALe %s\r\n"),qPrintable(command));
         break;
     }
 }
@@ -220,56 +223,56 @@ void Osuilograf::setRANGe(QString command, int control = 0)
     switch (control)
     {
     case 1:
-        viPrintf(vi, ":CHANnel1:RANGe %s\r\n",qPrintable(command));
+        viPrintf(vi, const_cast<ViString>(":CHANnel1:RANGe %s\r\n"),qPrintable(command));
         break;
     case 2:
-        viPrintf(vi, ":CHANnel2:RANGe %s\r\n",qPrintable(command));
+        viPrintf(vi, const_cast<ViString>(":CHANnel2:RANGe %s\r\n"),qPrintable(command));
         break;
     default:
-        viPrintf(vi, ":CHANnel1:RANGe %s\r\n",qPrintable(command));
-        viPrintf(vi, ":CHANnel2:RANGe %s\r\n",qPrintable(command));
+        viPrintf(vi, const_cast<ViString>(":CHANnel1:RANGe %s\r\n"),qPrintable(command));
+        viPrintf(vi, const_cast<ViString>(":CHANnel2:RANGe %s\r\n"),qPrintable(command));
         break;
     }
 }
 
 void Osuilograf::setTIMebaseSCALe(QString command)
 {
-    viPrintf(vi, ":TIMebase:SCALe %s\r\n",qPrintable(command));
+    viPrintf(vi, const_cast<ViString>(":TIMebase:SCALe %s\r\n"),qPrintable(command));
 }
 
 //{LEFT | CENTer | RIGHt | CUSTom}
 
 void Osuilograf::setTIMebaseREFerence(QString command)
 {
-    viPrintf(vi, ":TIMebase:REFerence  %s\r\n",qPrintable(command));
+    viPrintf(vi, const_cast<ViString>(":TIMebase:REFerence  %s\r\n"),qPrintable(command));
 }
 
 void Osuilograf::setTRIGgerEDGESOURce(QString command)
 {
-    viPrintf(vi, ":TRIGger:EDGE:SOURce  %s\r\n",qPrintable(command));
+    viPrintf(vi, const_cast<ViString>(":TRIGger:EDGE:SOURce  %s\r\n"),qPrintable(command));
 }
 
 //{POSitive | NEGative | EITHer | ALTernate}
 void Osuilograf::setTRIGgerEDGESLOPe(QString command)
 {
-    viPrintf(vi, ":TRIGger:EDGE:SLOPe  %s\r\n",qPrintable(command));
+    viPrintf(vi, const_cast<ViString>(":TRIGger:EDGE:SLOPe  %s\r\n"),qPrintable(command));
 }
 
 void Osuilograf::setTRIGgerEDGELEVel(QString command)
 {
-    viPrintf(vi, ":TRIGger:EDGE:LEVel  %s\r\n",qPrintable(command));
+    viPrintf(vi, const_cast<ViString>(":TRIGger:EDGE:LEVel  %s\r\n"),qPrintable(command));
 }
 
 void Osuilograf::setDelay(QString canal1 , QString canal2)
 {
 
-    viPrintf(vi, ":MEASure:DELay  CHANnel%s,CHANnel%s\r\n",qPrintable(canal1),qPrintable(canal2));
+    viPrintf(vi, const_cast<ViString>(":MEASure:DELay  CHANnel%s,CHANnel%s\r\n"),qPrintable(canal1),qPrintable(canal2));
 
 }
 
 void Osuilograf::setAmplitude(QString canal)
 {
-    viPrintf(vi, ":MEASure:VAMPlitude  CHANnel%s\r\n",qPrintable(canal));
+    viPrintf(vi, const_cast<ViString>(":MEASure:VAMPlitude  CHANnel%s\r\n"),qPrintable(canal));
 
 
     //Считывание значение амплитуды.
@@ -284,90 +287,98 @@ void Osuilograf::setAmplitude(QString canal)
 
 void Osuilograf::setVMAX(QString canal)
 {
-     viPrintf(vi, ":MEASure:VMAX  CHANnel%s\r\n",qPrintable(canal));
+     viPrintf(vi, const_cast<ViString>(":MEASure:VMAX  CHANnel%s\r\n"),qPrintable(canal));
 }
 
 //NORM or AUTO
 void Osuilograf::setTRIGgerSWEep(QString command)
 {
-   viPrintf(vi, ":TRIGger:SWEep  %s\r\n",qPrintable(command));
+   viPrintf(vi, const_cast<ViString>(":TRIGger:SWEep  %s\r\n"),qPrintable(command));
 }
 
 
 //насйтрока Осцилографа для измерения секундной метки
 void Osuilograf::setStartSeitings()
 {
-    setTRIGgerSWEep("NORM");
+    setTRIGgerSWEep("AUTO");
     setIMPedance("FIFTy");
-
+    //setIMPedance("AUTO");
 
     setSCALe("2",1); // 2 V
-    setSCALe("0.5",2); // 500mV
+    setSCALe("0.2",2); // 200mV
     setRANGe("16",1); // 2 V
     setRANGe("4",2); // 1V
-    setTIMebaseSCALe("0.000001"); // 1 микс
+    setTIMebaseSCALe("0.0000001"); // 1 микс
     setTIMebaseREFerence("CENTer");
+
     setTRIGgerEDGESOURce("CHANnel2");
     setTRIGgerEDGESLOPe("POSitive");
-    setTRIGgerEDGELEVel("0.0"); // 200mV
+    setTRIGgerEDGELEVel("0.03"); // 30mV
     setDelay("1","2"); // Задержка между каналом 1 и каналом 2
 
-    setAmplitude("1");
+    setAmplitude("0.2");
 
     setVMAX("1");
 
     setVMAX("2");
 }
 
-bool flag_change_seitings = false;
 
 void Osuilograf::setStartSeitings2()
 {
     if(flag_change_seitings == false)
     {
         setTRIGgerEDGESOURce("CHANnel1");
-        setTRIGgerEDGELEVel("4");
+        setTRIGgerSWEep("NORM"); //NORM
+        setTRIGgerEDGELEVel("0.2"); // 200mV
+        setSCALe("1",1);
         setIMPedance("FIFTy");
-        flag_change_seitings = true;
     }
     else
     {
         setTRIGgerEDGESOURce("CHANnel2");
-        setTRIGgerEDGELEVel("0.2");
-        setIMPedance("FIFTy");
-        setTRIGgerSWEep("NORM");
-        flag_change_seitings =  false;
+        setTRIGgerEDGELEVel("0.03"); //0.2
+        setSCALe("0.2",2);
+        //setIMPedance("AUTO");
+        setTRIGgerSWEep("AUTO"); //NORM
+        setIMPedance("FIFTy");//ONEMeg
+
     }
 }
 
-bool flag_change_seitings_3 = false;
 
 void Osuilograf::setStartSeitings3()
 {
     if(flag_change_seitings_3 == false)
     {
         setTRIGgerEDGESOURce("CHANnel1");
-        setTRIGgerEDGELEVel("6");
-        setTRIGgerSWEep("AUTO");
+        setTRIGgerEDGELEVel("0.2"); //6
         setIMPedance("ONEMeg");
-        flag_change_seitings_3 = true;
+        setTRIGgerSWEep("AUTO");
     }
     else
     {
-        setTRIGgerEDGESOURce("CHANnel2");
-        setTRIGgerEDGELEVel("0.2");
+        setTRIGgerEDGESOURce("CHANnel1");
+        setTRIGgerEDGELEVel("0.5"); //0.5
+        setSCALe("2",1);
+        setSCALe("2",2);
+
+        setTIMebaseSCALe("0.0000005"); // 1 микс
+       // setTIMebaseSCALe("0.005"); // 50
+
         setTRIGgerSWEep("NORM");
         setIMPedance("FIFTy");
-        flag_change_seitings_3 =  false;
     }
 }
 
 QString Osuilograf::getDelay()
 {
-    char bufQuery [100] = "";
-    char buff [100] = "";
+    char bufQuery [100];
+    char buff [100];
+    memset(bufQuery,0,sizeof(bufQuery));
+    memset(buff,0,sizeof(buff));
 
-    viQueryf(vi, ":MEASure:DELay? CHANnel1,CHANnel2\n","%T",bufQuery);
+    viQueryf(vi, const_cast<ViString>(":MEASure:DELay? CHANnel1,CHANnel2\n"),const_cast<ViString>("%T"),bufQuery);
 
 
     return qPrintable(bufQuery);
@@ -398,10 +409,12 @@ QString Osuilograf::getAmplitude()
 
     //Считывание значение амплитуды.
 
-    char bufQuery [100] = "";
-    char buff [100] = "";
+    char bufQuery [100];
+    char buff [100];
+    memset(bufQuery,0,sizeof(bufQuery));
+    memset(buff,0,sizeof(buff));
 
-    viQueryf(vi, ":MEASure:VAMPlitude? CHANnel1\n","%T",bufQuery);
+    viQueryf(vi, const_cast<ViString>(":MEASure:VAMPlitude? CHANnel1\n"),const_cast<ViString>("%T"),bufQuery);
 
 
    // viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
@@ -428,16 +441,18 @@ QString Osuilograf::getVMAX(QString canal)
 {
     //Считывание значение амплитуды.
 
-    char bufQuery [100] = "";
-    char buff [100] = "";
+    char bufQuery [100];
+    char buff [100];
+    memset(bufQuery,0,sizeof(bufQuery));
+    memset(buff,0,sizeof(buff));
 
     if(canal == "CHANnel2")
     {
-        viQueryf(vi, ":MEASure:VMAX? CHANnel2\n","%T",bufQuery);
+        viQueryf(vi, const_cast<ViString>(":MEASure:VMAX? CHANnel2\n"),const_cast<ViString>("%T"),bufQuery);
     }
     else
     {
-        viQueryf(vi, ":MEASure:VMAX? CHANnel1\n","%T",bufQuery);
+        viQueryf(vi, const_cast<ViString>(":MEASure:VMAX? CHANnel1\n"),const_cast<ViString>("%T"),bufQuery);
     }
 
 
@@ -447,6 +462,47 @@ QString Osuilograf::getVMAX(QString canal)
     qDebug () <<"Osuilograf VMAX = " <<  bufQuery;
 
     qDebug () <<"Osuilograf VMAX = " <<  qPrintable(bufQuery);
+
+  //  if(QString(buff) == "+0,\"No error\"\n")
+  //  {
+   //     emit signal_getCONTrol(qPrintable(bufQuery));
+
+        return qPrintable(bufQuery);
+  //  }
+  //  else
+  //  {
+  //      emit signal_getCONTrol(qPrintable(buff));
+
+  //      return qPrintable(buff);
+   // }
+}
+
+QString Osuilograf::getVRMS(QString canal)
+{
+    //Считывание значение амплитуды.
+
+    char bufQuery [100];
+    char buff [100];
+    memset(bufQuery,0,sizeof(bufQuery));
+    memset(buff,0,sizeof(buff));
+
+
+    if(canal == "CHANnel2")
+    {
+        viQueryf(vi, const_cast<ViString>(":MEASure:VRMS? CHANnel2\n"),const_cast<ViString>("%T"),bufQuery);
+    }
+    else
+    {
+        viQueryf(vi, const_cast<ViString>(":MEASure:VRMS? CHANnel1\n"),const_cast<ViString>("%T"),bufQuery);
+    }
+
+
+   // viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+
+
+    qDebug () <<"Osuilograf VRMS = " <<  bufQuery;
+
+    qDebug () <<"Osuilograf VRMS = " <<  qPrintable(bufQuery);
 
   //  if(QString(buff) == "+0,\"No error\"\n")
   //  {
@@ -474,11 +530,11 @@ QString Osuilograf::getVMAX(QString canal)
    * */
 void Osuilograf::setCONTrol(QString command)
 {
-    viPrintf(vi, "SOURce:SCENario:CONTrol %s\r\n",qPrintable(command));
+    viPrintf(vi, const_cast<ViString>("SOURce:SCENario:CONTrol %s\r\n"),qPrintable(command));
 
     // Check errors
     char buff[100] = " ";
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
     qDebug () << buff;
 
@@ -491,11 +547,11 @@ void Osuilograf::setCONTrol(QString command)
 
 void Osuilograf::setGenCONTrol(QString command)
 {
-    viPrintf(vi, "SOUR:ONECHN:CONT %s\r\n",qPrintable(command));
+    viPrintf(vi, const_cast<ViString>("SOUR:ONECHN:CONT %s\r\n"),qPrintable(command));
 
     // Check errors
     char buff[100] = " ";
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
     qDebug () << buff;
 
@@ -512,15 +568,15 @@ void Osuilograf::setGenCONTrol(QString command)
 void Osuilograf::setGenSATid(QString Np_liter)
 {
 
-    viPrintf(vi, "SOUR:ONECHN:CONT STOP\r\n");
+    viPrintf(vi, const_cast<ViString>("SOUR:ONECHN:CONT STOP\r\n"));
 
     qDebug () << " Np_liter = " <<  Np_liter;
 
-    viPrintf(vi, "SOURce:ONECHN:SATid %s\r\n",qPrintable(Np_liter));
+    viPrintf(vi, const_cast<ViString>("SOURce:ONECHN:SATid %s\r\n"),qPrintable(Np_liter));
 
     // Check errors
     char buff[100] = " ";
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
     qDebug () << buff;
 
@@ -544,11 +600,11 @@ void Osuilograf::setGenSATid(QString Np_liter)
 
 void Osuilograf::setGenSIGNALtype(QString type_signal)
 {
-    viPrintf(vi, "SOURce:ONECHN:SIGNALtype %s\r\n",qPrintable(type_signal));  //GLOL1 and  GPSL1P
+    viPrintf(vi, const_cast<ViString>("SOURce:ONECHN:SIGNALtype %s\r\n"),qPrintable(type_signal));  //GLOL1 and  GPSL1P
 
     // Check errors
     char buff[100] = " ";
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
     qDebug () << buff;
 
@@ -584,12 +640,12 @@ QString Osuilograf::getCONTrol()
     char buff [100] = "";
     // char* bufQuery = new char();
 
-    viQueryf(vi, "SOURce:SCENario:CONTrol?\n","%T",bufQuery);
+    viQueryf(vi, const_cast<ViString>("SOURce:SCENario:CONTrol?\n"),const_cast<ViString>("%T"),bufQuery);
 
     // Check errors
     //  char* buff = new char();
 
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
 
     if(QString(buff) == "0,\"No error\"\n")
@@ -620,11 +676,11 @@ QString Osuilograf::getCONTrol()
 void Osuilograf::setSIGNALtype(QString SIGNALtype)
 {
 
-    viPrintf(vi, "SOURce:ONECHN:SIGNALtype %T\r\n",&SIGNALtype);
+    viPrintf(vi, const_cast<ViString>("SOURce:ONECHN:SIGNALtype %T\r\n"),&SIGNALtype);
 
     // Check errors
     char* buff = new char();
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
     if(QString(buff) != "0,\"No error\"\n")
     {
@@ -640,12 +696,12 @@ QString Osuilograf::getSIGNALtype()
 {
     char* bufQuery = new char();
 
-    viQueryf(vi, "SOURce:ONECHN:SIGNALtype?\n","%T",bufQuery);
+    viQueryf(vi, const_cast<ViString>("SOURce:ONECHN:SIGNALtype?\n"),const_cast<ViString>("%T"),bufQuery);
 
     // Check errors
     char* buff = new char();
 
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
 
     if(QString(buff) == "0,\"No error\"\n")
@@ -671,12 +727,12 @@ QString Osuilograf::getSIGNALtype(QString id)
     char* bufSignal = new char();
 
 
-    viQueryf(vi, "SOUR:SCEN:SIGNAL? %s\r\n","%T",qPrintable(id),bufSignal);
+    viQueryf(vi, const_cast<ViString>("SOUR:SCEN:SIGNAL? %s\r\n"),const_cast<ViString>("%T"),qPrintable(id),bufSignal);
 
     // Check errors
     char* buff = new char();
 
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
 
     if(QString(buff) == "0,\"No error\"\n")
@@ -722,12 +778,12 @@ QString Osuilograf::getSATid(int n)
 {
     char* bufID = new char();
 
-    viQueryf(vi, "SOURce:SCENario:SATid%d?\n","%T",n,bufID);
+    viQueryf(vi, const_cast<ViString>("SOURce:SCENario:SATid%d?\n"),const_cast<ViString>("%T"),n,bufID);
 
     // Check errors
     char* buff = new char();
 
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
 
     if(QString(buff) == "0,\"No error\"\n")
@@ -753,12 +809,12 @@ QString Osuilograf::getFREQuency(int n)
 {
     char* bufID = new char();
 
-    viQueryf(vi, "SOURce:SCENario:FREQuency%d?\n","%T",n,bufID);
+    viQueryf(vi, const_cast<ViString>("SOURce:SCENario:FREQuency%d?\n"),const_cast<ViString>("%T"),n,bufID);
 
     // Check errors
     char* buff = new char();
 
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
 
     if(QString(buff) == "0,\"No error\"\n")
@@ -783,12 +839,12 @@ QString Osuilograf::getFREQuency(QString id)
 {
     char* bufID = new char();
 
-    viQueryf(vi, "SOURce:SCENario:FREQuency? %s\n","%T",qPrintable(id),bufID);
+    viQueryf(vi, const_cast<ViString>("SOURce:SCENario:FREQuency? %s\n"),const_cast<ViString>("%T"),qPrintable(id),bufID);
 
     // Check errors
     char* buff = new char();
 
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
 
     if(QString(buff) == "0,\"No error\"\n")
@@ -815,11 +871,11 @@ QString Osuilograf::getFREQuency(QString id)
 void Osuilograf::setPOWer(int id,int power,QString freqband)
 {
 
-    viPrintf(vi, "SOURce:SCENario:POWer%d %d,%s\r\n",id,power,qPrintable(freqband));
+    viPrintf(vi, const_cast<ViString>("SOURce:SCENario:POWer%d %d,%s\r\n"),id,power,qPrintable(freqband));
 
     // Check errors
     char* buff = new char();
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
     if(QString(buff) != "0,\"No error\"\n")
     {
@@ -836,11 +892,11 @@ void Osuilograf::setPOWer(int id,int power,QString freqband)
 void Osuilograf::setPOWer(QString id,int power,QString freqband)
 {
 
-    viPrintf(vi, "SOURce:SCENario:POWer %s,%d,%s\r\n",qPrintable(id),power,qPrintable(freqband));
+    viPrintf(vi, const_cast<ViString>("SOURce:SCENario:POWer %s,%d,%s\r\n"),qPrintable(id),power,qPrintable(freqband));
 
     // Check errors
     char* buff = new char();
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
     if(QString(buff) != "0,\"No error\"\n")
     {
@@ -858,14 +914,14 @@ void Osuilograf::setPOWer(QString id,int power,QString freqband)
 void Osuilograf::setPOWerALL(int power,QString freqband)
 {
 
-    viPrintf(vi, "SOURce:SCENario:FREQBAND:POWer %d,%s\r\n",power,qPrintable(freqband));
+    viPrintf(vi, const_cast<ViString>("SOURce:SCENario:FREQBAND:POWer %d,%s\r\n"),power,qPrintable(freqband));
 
     // Check errors
     //  char* buff = new char();
 
     char buff[100] = " ";
 
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
     if(QString(buff) != "0,\"No error\"\n")
     {
@@ -885,12 +941,12 @@ QString Osuilograf::getPOWer(int id,QString freqband)
 
     char* bufID = new char();
 
-    viQueryf(vi, "SOURce:SCENario:POWer%d? %s\n","%T",id,qPrintable(freqband),bufID);
+    viQueryf(vi, const_cast<ViString>("SOURce:SCENario:POWer%d? %s\n"),const_cast<ViString>("%T"),id,qPrintable(freqband),bufID);
 
     // Check errors
     char* buff = new char();
 
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
 
     if(QString(buff) == "0,\"No error\"\n")
@@ -919,12 +975,12 @@ QString Osuilograf::getPOWer(QString id)
 
     char bufID[100] = "";
 
-    viQueryf(vi, "SOURce:SCENario:POWer? %s\n","%T",qPrintable(id),bufID);
+    viQueryf(vi, const_cast<ViString>("SOURce:SCENario:POWer? %s\n"),const_cast<ViString>("%T"),qPrintable(id),bufID);
 
     // Check errors
     char buff[100]="";
 
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
 
     if(QString(buff) == "0,\"No error\"\n")
@@ -951,12 +1007,12 @@ QString Osuilograf::getSVmodel(int id)
 {
     char* bufID = new char();
 
-    viQueryf(vi, "SOURce:SCENario:SVmodel%d? %s\n","%T",id,bufID);
+    viQueryf(vi, const_cast<ViString>("SOURce:SCENario:SVmodel%d? %s\n"),const_cast<ViString>("%T"),id,bufID);
 
     // Check errors
     char* buff = new char();
 
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
 
     if(QString(buff) == "0,\"No error\"\n")
@@ -983,12 +1039,12 @@ QString Osuilograf::getSVmodel(QString id)
 {
     char* bufID = new char();
 
-    viQueryf(vi, "SOURce:SCENario:SVmodel? %s %s\n","%T",qPrintable(id),bufID);
+    viQueryf(vi, const_cast<ViString>("SOURce:SCENario:SVmodel? %s %s\n"),const_cast<ViString>("%T"),qPrintable(id),bufID);
 
     // Check errors
     char* buff = new char();
 
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
 
     if(QString(buff) == "0,\"No error\"\n")
@@ -1010,13 +1066,13 @@ QString Osuilograf::getPosition()
 
     // viPrintf(vi, "*WAI\r\n");
 
-    viQueryf(vi, "SOURce:SCENario:LOG?\n","%T",bufID);
+    viQueryf(vi, const_cast<ViString>("SOURce:SCENario:LOG?\n"),const_cast<ViString>("%T"),bufID);
 
 
     // Check errors
     char buff[100];
 
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
 
     if(QString(buff) == "0,\"No error\"\n")
@@ -1041,11 +1097,11 @@ void Osuilograf::getScenDataTime()
     char bufDataTime[100] = "";
     char bufDataTimeError[100] = "";
 
-    viQueryf(vi, "SOURce:SCENario:DATEtime? UTC\n","%T",&bufDataTime);
+    viQueryf(vi, const_cast<ViString>("SOURce:SCENario:DATEtime? UTC\n"),const_cast<ViString>("%T"),&bufDataTime);
 
 
     // Check errors
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",&bufDataTimeError);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),&bufDataTimeError);
 
     // qDebug () << QString(qPrintable(bufDataTime)).split("\n").first();
 
@@ -1071,13 +1127,13 @@ QString Osuilograf::getNumberIDSpytnik()
     char bufID[100]= "";
 
 
-    viQueryf(vi, "SOURce:SCENario:SVINview?\n","%T",bufID);
+    viQueryf(vi, const_cast<ViString>("SOURce:SCENario:SVINview?\n"),const_cast<ViString>("%T"),bufID);
 
 
     // Check errors
     char buff[100]= "";
 
-    viQueryf(vi,"SYSTem:ERRor?\n","%T",buff);
+    viQueryf(vi,const_cast<ViString>("SYSTem:ERRor?\n"),const_cast<ViString>("%T"),buff);
 
 
 

@@ -22,15 +22,14 @@ class ClockCircle : public QQuickPaintedItem
     Q_PROPERTY(qreal constAngle READ constAngle WRITE setConstAngle NOTIFY constAngleChanged)
 
 public:
-    explicit ClockCircle(QQuickItem *parent = 0);
+    explicit ClockCircle(QQuickItem *parent = nullptr);
 
-    void paint(QPainter *painter) override; // Переопределяем метод, в котором будет отрисовываться наш объект
+
 
     // Методы, доступные из QML для ...
-    Q_INVOKABLE void clear();   // ... очистки времени, ...
-    Q_INVOKABLE void start();   // ... запуска таймера, ...
-    Q_INVOKABLE void stop();    // ... остановки таймера, ...
-
+    //Q_INVOKABLE void clear();   // ... очистки времени, ...
+   // Q_INVOKABLE void start();   // ... запуска таймера, ...
+   // Q_INVOKABLE void stop();    // ... остановки таймера, ...
 
 
     QString name() const;
@@ -41,6 +40,8 @@ public:
     qreal constAngle() const;
     QTime circleTime() const;
 
+    QPainter *painterParent;
+
 public slots:
     void setName(const QString name);
     void setBackgroundColor(const QColor backgroundColor);
@@ -49,6 +50,16 @@ public slots:
     void setAngle(const qreal angle);
     void setConstAngle(const qreal angel);
     void setCircleTime(const QTime circleTime);
+
+    void clear();   // ... очистки времени, ...
+    void start(); // ... запуска таймера, ...
+    void stop();    // ... остановки таймера, ...
+
+    void slot_Finish();
+
+    void paint(QPainter *painter) override; // Переопределяем метод, в котором будет отрисовываться наш объект
+
+    void paint2();
 
 signals:
     void cleared();
@@ -60,6 +71,9 @@ signals:
     void angleChanged(const qreal angle);
     void constAngleChanged(const qreal angle);
     void circleTimeChanged(const QTime circleTime);
+
+    //////
+    void signal_Finish();
 
 private:
     QString     m_name;                 // Название объекта, по большей части до кучи добавлено

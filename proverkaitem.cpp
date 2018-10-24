@@ -2,9 +2,9 @@
 
 
 
-proverkaItem::proverkaItem(int indexGet,N6700Model* n6700,
-                           gsgModel* gsgModelGet,PortModel* port,
-                           bool vnytrenGenGet, bool goodGet,QString GetName,screenCapture* screenClassGet, QObject *parent):
+proverkaItem::proverkaItem(int indexGet,int _indexList,N6700Model* n6700,
+                           gsgModel* gsgModelGet,OsuilografModel* _os, tp8Model* _tp,PortModel* port,
+                           bool vnytrenGenGet, bool goodGet,QString GetName, QObject *parent):
     QObject(parent),
     m_tok("-"),
     m_v("-"),
@@ -15,22 +15,20 @@ proverkaItem::proverkaItem(int indexGet,N6700Model* n6700,
     m_glonassFind("-"),
     m_vnytrenGen(true),
     m_good(false),
+    indexList(_indexList),
     m_tick("Ждем запуска приемника"),
-    m_indexProverki("0"),
-    screenClass(screenClassGet)
+    m_indexProverki("0")
 {
 
-
-
     index = indexGet;
-
+    emit indexNPChanged(QString::number(index));
     n6700model = n6700;
+    os = _os;
+    tp = _tp;
 
-    relizProverka = new RelizProverka(indexGet,n6700model,gsgModelGet,port,GetName,screenClass);
+    relizProverka = new RelizProverka(indexGet,_indexList,n6700,gsgModelGet,os,tp,port,GetName);
 
-    relizProverkaTimer = new relizproverkaTimer(indexGet,n6700model,gsgModelGet,port,relizProverka);
-
-
+    relizProverkaTimer = new relizproverkaTimer(indexGet,n6700,gsgModelGet,port,relizProverka);
 
 
     for(int i=0;i < 24;i++)
@@ -40,75 +38,74 @@ proverkaItem::proverkaItem(int indexGet,N6700Model* n6700,
 
     emit signal_listSpytnikChanged(m_listSpytnik);
 
-    //    switch (index) {
-    //    case 1:
-    //        m_tok = n6700->item1->tok;
-    //        m_v = n6700->item1->v;
-    //        m_power = n6700->item1->p;
-    //        break;
-    //    case 2:
-    //        m_tok = n6700->item2->tok;
-    //        m_v = n6700->item2->v;
-    //        m_power = n6700->item2->p;
-    //        break;
-    //    case 3:
-    //        m_tok = n6700->item3->tok;
-    //        m_v = n6700->item3->v;
-    //        m_power = n6700->item3->p;
-    //        break;
-    //    case 4:
-    //        m_tok = n6700->item4->tok;
-    //        m_v = n6700->item4->v;
-    //        m_power = n6700->item4->p;
-    //        break;
-    //    default:
-    //        break;
-    //    }
-
-    //    m_gpsGen = QString::number(gsgModelGet->G);
-    //    m_glonassGen = QString::number(gsgModelGet->R);
-    //    m_gpsFind = QString::number(port->CountFindGPS);
-    //    m_glonassFind = QString::number(port->CountFindGLONASS);
-    //    m_vnytrenGen = vnytrenGenGet;
-    //    m_good = goodGet;
-
-    // QObject::connect(this,&proverkaItem::signal_StartProverka,relizProverka,&RelizProverka::Work,Qt::QueuedConnection);
-
-    QObject::connect(gsgModelGet,&gsgModel::countSpytnik_R,this,&proverkaItem::getR,Qt::QueuedConnection);
-    QObject::connect(gsgModelGet,&gsgModel::countSpytnik_G,this,&proverkaItem::getG,Qt::QueuedConnection);
-
-    QObject::connect(n6700,&N6700Model::getMeasureCURRentSignal,this,&proverkaItem::slot_getMeasureCURRentSignal,Qt::QueuedConnection);
-    QObject::connect(n6700,&N6700Model::getMeasureVoltSignal,this,&proverkaItem::slot_getMeasureVoltSignal,Qt::QueuedConnection);
 
 
-    QObject::connect(port,&PortModel::UpdateCountFindQML,this,&proverkaItem::slot_getUpdateCountFindQML,Qt::QueuedConnection);
+    connect(gsgModelGet,&gsgModel::countSpytnik_R,this,&proverkaItem::getR);
+    connect(gsgModelGet,&gsgModel::countSpytnik_G,this,&proverkaItem::getG);
 
-    QObject::connect(port,&PortModel::signal_setListSpytnik,this,&proverkaItem::slot_setListSpytnik,Qt::QueuedConnection);
-
-    QObject::connect(relizProverkaTimer,&relizproverkaTimer::signal_Tick,this,&proverkaItem::slot_Tick,Qt::QueuedConnection);
-
-    QObject::connect(relizProverka,&RelizProverka::startWork,relizProverkaTimer,&relizproverkaTimer::Work,Qt::QueuedConnection);
-
-    QObject::connect(relizProverka,&RelizProverka::startWork_liters,relizProverkaTimer,&relizproverkaTimer::Work_liters,Qt::QueuedConnection);
-    QObject::connect(relizProverka,&RelizProverka::startWork_Os,relizProverkaTimer,&relizproverkaTimer::Work_Os,Qt::QueuedConnection);
-
-    QObject::connect(relizProverka,&RelizProverka::signal_StopGSG,gsgModelGet,&gsgModel::slot_StopTimer,Qt::QueuedConnection);
-
-    QObject::connect(relizProverkaTimer,&relizproverkaTimer::signal_GoodQML,this,&proverkaItem::slot_Good,Qt::QueuedConnection);
+    connect(n6700->n6700,&N6700::getMeasureCURRentSignal,this,&proverkaItem::slot_getMeasureCURRentSignal);
+    connect(n6700->n6700,&N6700::getMeasureVoltSignal,this,&proverkaItem::slot_getMeasureVoltSignal);
 
 
-    QObject::connect(relizProverka,&RelizProverka::signal_IndexProverka,this,&proverkaItem::slot_IndexProverki,Qt::QueuedConnection);
+    connect(port,&PortModel::UpdateCountFindQML,this,&proverkaItem::slot_getUpdateCountFindQML);
 
-    QObject::connect(this,&proverkaItem::powerChanged,relizProverkaTimer,&relizproverkaTimer::slot_Power,Qt::QueuedConnection);
-
-
-    QObject::connect(relizProverkaTimer,&relizproverkaTimer::signal_GetMrk_OT,port->PortNew,&Port::GetMrk_OT);
-    QObject::connect(relizProverkaTimer,&relizproverkaTimer::signal_GetMrk_liters,port->PortNew,&Port::GetMrk_liters);
-    QObject::connect(relizProverkaTimer,&relizproverkaTimer::signal_GetMrk_liters_2,port->PortNew,&Port::GetMrk_liters_2);
-
-    QObject::connect(relizProverka,&RelizProverka::signal_StartProverkaIndex,this,&proverkaItem::signal_StartProverkaIndex);
+    connect(port->PortNew,&Port::signal_GoTORelizproverka,this,&proverkaItem::slot_setListSpytnik);
 
 
+    connect(relizProverkaTimer,&relizproverkaTimer::signal_Tick,this,&proverkaItem::slot_Tick);
+
+    connect(relizProverka,&RelizProverka::signal_qmlText,this,&proverkaItem::slot_Tick);
+
+    connect(relizProverka,&RelizProverka::startWork,relizProverkaTimer,&relizproverkaTimer::Work);
+
+    connect(relizProverka,&RelizProverka::startWork_liters,relizProverkaTimer,&relizproverkaTimer::Work_liters);
+    connect(relizProverka,&RelizProverka::startWork_Os,relizProverkaTimer,&relizproverkaTimer::Work_Os);
+
+    connect(relizProverka,&RelizProverka::signal_StopGSG,gsgModelGet,&gsgModel::slot_StopTimer);
+
+    connect(relizProverkaTimer,&relizproverkaTimer::signal_GoodQML,this,&proverkaItem::slot_Good);
+
+
+    connect(relizProverka,&RelizProverka::signal_IndexProverka,this,&proverkaItem::slot_IndexProverki);
+
+    connect(this,&proverkaItem::powerChanged,relizProverkaTimer,&relizproverkaTimer::slot_Power);
+
+
+    connect(relizProverkaTimer,&relizproverkaTimer::signal_GetMrk_OT,port->PortNew,&Port::GetMrk_OT);
+    connect(relizProverkaTimer,&relizproverkaTimer::signal_GetMrk_liters,port->PortNew,&Port::GetMrk_liters);
+
+    auto lambda = [&](const QString indexPr) {
+        switch (indexPr.toInt()) {
+        case 1: setProverkaName("Проверка работоспособности приемника");break;
+            case 2: setProverkaName("Проверка работоспособности приемника на воздействие пониженного напряжения питания");break;
+            case 3: setProverkaName("Проверка работоспособности приемника на воздействие повышенного напряжения питания");break;
+            case 4: setProverkaName("Проверка мощности, потребляемой приемником от источника постоянного тока");break;
+            case 5: setProverkaName("Проверка поиска, захвата и сопровождения сигнала с уровнем мощности минус 160 дБВт(-130 dBm)");break;
+            case 6: setProverkaName("Проверка работы приемника от внешнего опорного генератора");break;
+            case 7: setProverkaName("Проверка напряжения сигнала выходной частоты 10 МГц");break;
+            case 8: setProverkaName("Проверка амплитуды выходного сигнала секундной метки");break;
+            case 9: setProverkaName("Проверка напряжения питания МШУ");break;
+            case 10: setProverkaName("Проверка смещения секундной метки");break;
+        }
+        emit signal_StartProverkaIndex(indexPr);
+       };
+
+    connect(relizProverka,&RelizProverka::signal_StartProverkaIndex,lambda);
+
+
+}
+
+proverkaItem::~proverkaItem()
+{
+    qDebug() << "DELETE proverkaItem";
+    delete relizProverkaTimer;
+    delete  relizProverka;
+}
+
+const QString &proverkaItem::indexNP()
+{
+    m_indexNP = QString::number(index);
+    return m_indexNP;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -132,46 +129,49 @@ void proverkaItem::getG(int G)
 
 void proverkaItem::slot_getMeasureCURRentSignal(QVector<QString> list)
 {
-    n6700model->item1->tok = list[0].split("\n").first();
-    n6700model->item2->tok = list[1].split("\n").first();
-    n6700model->item3->tok = list[2].split("\n").first();
-    n6700model->item4->tok = list[3].split("\n").first();
+    get_tok.clear();
+
+    for(int i=0; i < list.count();i++)
+    {
+        get_tok.append(list[i].split("\n").first());
+    }
 }
 
 void proverkaItem::slot_getMeasureVoltSignal(QVector<QString> list)
 {
-    n6700model->item1->v = list[0].split("\n").first();
-    n6700model->item2->v = list[1].split("\n").first();
-    n6700model->item3->v = list[2].split("\n").first();
-    n6700model->item4->v = list[3].split("\n").first();
 
-    n6700model->item1->p = QString::number(n6700model->item1->tok.toDouble()*n6700model->item1->v.toDouble());
-    n6700model->item2->p = QString::number(n6700model->item2->tok.toDouble()*n6700model->item2->v.toDouble());
-    n6700model->item3->p = QString::number(n6700model->item3->tok.toDouble()*n6700model->item3->v.toDouble());
-    n6700model->item4->p = QString::number(n6700model->item4->tok.toDouble()*n6700model->item4->v.toDouble());
+    get_volt.clear();
+    get_p.clear();
+
+    for(int i=0; i < list.count();i++)
+    {
+        get_volt.append(list[i].split("\n").first());
+
+        get_p.append(QString::number(get_tok.value(i).toDouble() * get_volt.value(i).toDouble()));
+    }
 
 
     switch (index) {
     case 1:
 
-        m_tok = QString::number(n6700model->item1->tok.toDouble(),NULL,3);
-        m_v = QString::number(n6700model->item1->v.toDouble(),NULL,3);
-        m_power = QString::number(n6700model->item1->p.toDouble(),NULL,3);
+        m_tok = QString::number(get_tok.value(0).toDouble(),NULL,3);
+        m_v = QString::number(get_volt.value(0).toDouble(),NULL,3);
+        m_power = QString::number(get_p.value(0).toDouble(),NULL,3);
         break;
     case 2:
-        m_tok = QString::number(n6700model->item2->tok.toDouble(),NULL,3);
-        m_v = QString::number(n6700model->item2->v.toDouble(),NULL,3);
-        m_power = QString::number(n6700model->item2->p.toDouble(),NULL,3);
+        m_tok = QString::number(get_tok.value(1).toDouble(),NULL,3);
+        m_v = QString::number(get_volt.value(1).toDouble(),NULL,3);
+        m_power = QString::number(get_p.value(1).toDouble(),NULL,3);
         break;
     case 3:
-        m_tok = QString::number(n6700model->item3->tok.toDouble(),NULL,3);
-        m_v = QString::number(n6700model->item3->v.toDouble(),NULL,3);
-        m_power = QString::number(n6700model->item3->p.toDouble(),NULL,3);
+        m_tok = QString::number(get_tok.value(2).toDouble(),NULL,3);
+        m_v = QString::number(get_volt.value(2).toDouble(),NULL,3);
+        m_power = QString::number(get_p.value(2).toDouble(),NULL,3);
         break;
     case 4:
-        m_tok = QString::number(n6700model->item4->tok.toDouble(),NULL,3);
-        m_v = QString::number(n6700model->item4->v.toDouble(),NULL,3);
-        m_power = QString::number(n6700model->item4->p.toDouble(),NULL,3);
+        m_tok = QString::number(get_tok.value(3).toDouble(),NULL,3);
+        m_v = QString::number(get_volt.value(3).toDouble(),NULL,3);
+        m_power = QString::number(get_p.value(3).toDouble(),NULL,3);
         break;
     default:
         break;
@@ -427,6 +427,23 @@ void proverkaItem::setlistSpytnik_Liters(const QVariantList &listSpytnik_Liters)
     }
 }
 
+const QString &proverkaItem::proverkaName() const
+{
+    return m_proverkaName;
+}
+
+void proverkaItem::setProverkaName(const QString &proverkaName)
+{
+
+    if(proverkaName != m_proverkaName)
+    {
+        m_proverkaName = proverkaName;
+        emit signal_proverkaNameChanged(m_proverkaName);
+    }
+
+      qDebug() << m_proverkaName;
+}
+
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -457,40 +474,48 @@ void proverkaItem::slot_IndexProverki(QString indexPr)
     setIndexProverki(indexPr);
 }
 
-QVariantList list;
+int proverkaItem::slot_IndexNp()
+{
+    return index;
+}
+
+
+
+
 
 void proverkaItem::slot_setListSpytnik(QStringList listSp,QStringList listSp_Amplitude,QStringList listSp_Name)
 {
-    // qDebug() <<"listSP = " << listSp;
 
     list.clear();
 
-    for(int i =0; i < listSp.count();i++)
+    foreach(QString s, listSp)
     {
-        list << listSp[i];
+        list << s;
     }
+
 
     setListSpytnik(list);
 
+
     list.clear();
 
-    for(int i =0; i < listSp_Amplitude.count();i++)
+    foreach(QString s, listSp_Amplitude)
     {
-        list << listSp_Amplitude[i];
+        list << s;
     }
-
 
     setlistSpytnik_Amplitude(list);
 
     list.clear();
 
-    for(int i =0; i < listSp_Name.count();i++)
+    foreach(QString s, listSp_Name)
     {
-        list << listSp_Name[i];
+        list << s;
     }
 
     setlistSpytnik_Name(list);
 
     list.clear();
+
 
 }
