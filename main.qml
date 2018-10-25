@@ -328,7 +328,7 @@ ApplicationWindow {
         height:768
 
 
-        currentIndex: 4
+        currentIndex: 0
         anchors.fill: parent
         interactive: false
 
@@ -598,7 +598,7 @@ ApplicationWindow {
                 {
                     anchors.verticalCenter: parent.verticalCenter
 
-                    text: this.visible ?  proverkiStartPage.viewProverka.model[0].proverkaName : ""
+                    //text: this.visible ?  proverkiStartPage.viewProverka.model[0].proverkaName : ""
 
                     clip: true
                     anchors.left: parent.left

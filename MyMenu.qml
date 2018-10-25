@@ -170,16 +170,21 @@ Item{
                         mainWindow.stWindow += "4";
                         mainWindow.showMaximized();
 
-                        topArea.visible = !topArea.visible;
-                        bottomArea.visible = !bottomArea.visible;
-                        leftArea.visible = !leftArea.visible;
-                        rightArea.visible = !rightArea.visible;
+                        topArea.visible = true;
+                        bottomArea.visible = true;
+                        leftArea.visible = true;
+                        rightArea.visible = true;
                         //arelMouse.visible = !arelMouse.visible;
                     }
                     else
                     {
                         mainWindow.stWindow = "";
                         mainWindow.showNormal();
+
+                        topArea.visible = false;
+                        bottomArea.visible = false;
+                        leftArea.visible = false;
+                        rightArea.visible = false;
                     }
                 }
 
@@ -287,10 +292,10 @@ Item{
                 {
                     mainWindow.showNormal();
 
-                    topArea.visible = !topArea.visible;
-                    bottomArea.visible = !bottomArea.visible;
-                    leftArea.visible = !leftArea.visible;
-                    rightArea.visible = !rightArea.visible;
+                    topArea.visible = true;
+                    bottomArea.visible = true;
+                    leftArea.visible = true;
+                    rightArea.visible = true;
                 }
                 else
                 {
@@ -298,6 +303,11 @@ Item{
                     var delta = Qt.point(mouse.x-clickPos.x, mouse.y-clickPos.y)
                     mainWindow.x += delta.x;
                     mainWindow.y += delta.y;
+
+                    topArea.visible = false;
+                    bottomArea.visible = false;
+                    leftArea.visible = false;
+                    rightArea.visible = false;
                 }
 
             }
@@ -310,15 +320,20 @@ Item{
                     mainWindow.stWindow += "4";
                     mainWindow.showMaximized();
 
-                    topArea.visible = !topArea.visible;
-                    bottomArea.visible = !bottomArea.visible;
-                    leftArea.visible = !leftArea.visible;
-                    rightArea.visible = !rightArea.visible;
+                    topArea.visible = true;
+                    bottomArea.visible = true;
+                    leftArea.visible = true;
+                    rightArea.visible = true;
                 }
                 else
                 {
                     mainWindow.stWindow = "";
                     mainWindow.showNormal();
+
+                    topArea.visible = false;
+                    bottomArea.visible = false;
+                    leftArea.visible = false;
+                    rightArea.visible = false;
                 }
 
             }
